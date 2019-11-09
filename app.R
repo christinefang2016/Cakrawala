@@ -5,10 +5,14 @@ library(ggplot2)
 library(plotly)
 library(reshape2)
 library(shinyWidgets)
+library(sf)
+library(tmap)
+library(leaflet)
 
 #----------------------------------------Package installation--------------------------------------------
-packages = c('tinytex','RColorBrewer','classInt','ggthemes',
-             'tidyverse', 'pivottabler', 'dplyr', 'lubridate', 'gapminder')
+packages = c('tinytex','plotly', 'RColorBrewer','classInt','ggthemes',
+             'tidyverse', 'pivottabler', 'dplyr','shiny','shinythemes', 'lubridate',
+             'sf', 'tmap', 'shinyWidgets', 'leaflet')
 for(p in packages){
     if(!require(p, character.only = T)){
         install.packages(p)
@@ -46,7 +50,6 @@ export_import <- data.frame(cbind("Year" = import_by_year$Year, "Import" = impor
 
 #---------------------------------Proportion of Exported Goods (Dashboard 1-1b)-----------------------------
 export_oilgas <- read_csv("data/Export_Oil_Gas.csv")
-
 export_nonoilgas <- aggregate(total_export[,6:9],
                               by = list(total_export$Year),
                               FUN = sum,
@@ -54,7 +57,15 @@ export_nonoilgas <- aggregate(total_export[,6:9],
 names(export_nonoilgas)[names(export_nonoilgas) == "Group.1"] <- "Year"
 export_nonoilgas <- export_nonoilgas[-c(24),]
 
-export_proportion <- data.frame(cbind(export_oilgas, export_nonoilgas[,2:5]))
+testing <- export_oilgas %>% gather("Subcategory", "Import", -Year)
+testing$Category <- "Oil&Gas"
+names(testing)[names(testing) == "Crude Oil"] <- "Crude.Oil"
+names(testing)[names(testing) == "Oil Product"] <- "Oil.Product"
+
+testing_nonoilgas <- export_nonoilgas %>% gather("Subcategory", "Import", -Year)
+testing_nonoilgas$Category <- "NonOil&Gas"
+
+export_proportion <- data.frame(rbind(testing_nonoilgas, testing))
 #-----------------------------------------------------------------------------------------------------------
 
 
@@ -83,6 +94,14 @@ names(export_import_by_country)[names(export_import_by_country) == "Import Value
 names(export_import_by_country)[names(export_import_by_country) == "Export Value"] <- "Export.Value"
 #-----------------------------------------------------------------------------------------------------------
 
+#---------------------------------------Dashboard 1-2c------------------------------------------------------
+#Export_Import by country on map
+export_import_map <- read_csv("data/ExportImportByCountriesLongLat.csv")
+export_import_map <- export_import_map %>% filter(!is.na(export_import_map$Longitude))
+filtered_export_import_map <- st_as_sf(export_import_map, 
+                                       coords = c("Longitude", "Latitude"))
+#-----------------------------------------------------------------------------------------------------------
+
 #-----------------------------Data preprocessing for Dashboard 3 (Trade Balance)----------------------------
 ImportExport <- read.csv("data/IndonesiaExportImport.csv")
 
@@ -106,43 +125,49 @@ ds <- filter(ds,variable != "Tradebalance")
 # Set some colors
 plotcolor <- "#F5F1DA"
 papercolor <- "#E3DFC8"
+col <- reactive({ifelse(ds2$value >=0, "green","red")})
+
+data <- read.csv("data/ExportImportByCountries.csv")
+tempdata = mutate(data, Importpercentile = ntile(data$Import.Value,100))
+finaldata = mutate(tempdata, Exportpercentile = ntile(tempdata$Export.Value,100))
+finaldata$Tradebalance <- finaldata$Export.Value - finaldata$Import.Value
 #-----------------------------------------------------------------------------------------------------------
 
 ui <- dashboardPage(
     dashboardHeader(title = "Cakrawala",
                     dropdownMenu(type = "messages",
-                         messageItem(
-                             from = "Sales Dept",
-                             message = "Sales are steady this month."
-                         ),
-                         messageItem(
-                             from = "New User",
-                             message = "How do I register?",
-                             icon = icon("question"),
-                             time = "13:45"
-                         ),
-                         messageItem(
-                             from = "Support",
-                             message = "The new server is ready.",
-                             icon = icon("life-ring"),
-                             time = "2014-12-01"
-                         )
+                                 messageItem(
+                                     from = "Sales Dept",
+                                     message = "Sales are steady this month."
+                                 ),
+                                 messageItem(
+                                     from = "New User",
+                                     message = "How do I register?",
+                                     icon = icon("question"),
+                                     time = "13:45"
+                                 ),
+                                 messageItem(
+                                     from = "Support",
+                                     message = "The new server is ready.",
+                                     icon = icon("life-ring"),
+                                     time = "2014-12-01"
+                                 )
                     ),
                     dropdownMenu(type = "notifications",
-                         notificationItem(
-                             text = "5 new users today",
-                             icon("users")
-                         ),
-                         notificationItem(
-                             text = "12 items delivered",
-                             icon("truck"),
-                             status = "success"
-                         ),
-                         notificationItem(
-                             text = "Server load at 86%",
-                             icon = icon("exclamation-triangle"),
-                             status = "warning"
-                         )
+                                 notificationItem(
+                                     text = "5 new users today",
+                                     icon("users")
+                                 ),
+                                 notificationItem(
+                                     text = "12 items delivered",
+                                     icon("truck"),
+                                     status = "success"
+                                 ),
+                                 notificationItem(
+                                     text = "Server load at 86%",
+                                     icon = icon("exclamation-triangle"),
+                                     status = "warning"
+                                 )
                     )),
     dashboardSidebar(
         sidebarMenu(
@@ -173,13 +198,13 @@ ui <- dashboardPage(
                         box(title = "Proportion of Exported Goods",
                             plotlyOutput("ExportProportion", height = 500)),
                         
-                        box(title = "Proportion of Exported Goods",
+                        box(title = "Proportion of Imported Goods",
                             plotlyOutput("ImportProportion", height = 500))
                     )
             ),
             #-------------------------------------------------------------------------------------------------------------
             
-            # Third tab content
+            #-------------------------------------------Dashboard1-2------------------------------------------------------
             tabItem(tabName = "dashboard1-2",
                     fluidRow(
                         sliderInput("obs", 
@@ -192,9 +217,21 @@ ui <- dashboardPage(
                         ),
                         
                         column(6, plotlyOutput("ImportPartner"), height = "600px"),
-                        column(6, plotlyOutput("ExportPartner"), height = "600px")
+                        column(6, plotlyOutput("ExportPartner"), height = "600px"),
+                        
+                        selectizeInput(
+                            inputId = "FilterYearMap",
+                            label = "Year",
+                            choices = unique(filtered_export_import_map$Year),
+                            selected = filtered_export_import_map$Year[0],
+                            multiple = FALSE),
+                        
+                        column(6, leafletOutput("ImportPartnerMap"), height = "600px"),
+                        column(6, leafletOutput("ExportPartnerMap"), height = "600px")
                     )
             ),
+            #--------------------------------------------------------------------------------------------------------------
+            
             
             # Third tab content
             tabItem(tabName = "dashboard2",
@@ -213,7 +250,17 @@ ui <- dashboardPage(
             tabItem(tabName = "dashboard3",
                     h2("Dashboard 3 - Trade Balance"),
                     fluidRow(
-                        column(6, plotlyOutput(outputId = "timeseries", height = "600px"))
+                        column(6, plotlyOutput(outputId = "timeseries", height = "600px")),
+                        
+                        sliderInput(
+                            inputId = "FilterYear3",
+                            label = "Year",
+                            min = 2002,
+                            max = 2018,
+                            value = 2002,
+                            sep = "",
+                            animate = animationOptions(loop = TRUE)),
+                        column(6, plotlyOutput("scatter"), height = "600px")
                     )
             )
             
@@ -229,33 +276,36 @@ server <- function(input, output) {
     #----------------------------------------------------Dashboard 1-1-----------------------------------------------------
     output$ImportExport <- renderPlotly({
         melt_export_import <- melt(export_import, id.vars = "Year")
-        p <- ggplot(melt_export_import, aes(x = Year, y = value, fill=variable)) + 
-            geom_bar(stat = 'identity', position=position_dodge(), colour = "black") +
-            ylab("Amount (US$)") + xlab("Year") 
-        ggplotly(p)
+        p <- plot_ly(source = "source") %>% 
+            add_lines(data = melt_export_import, x= ~Year, y=~value,color=~variable,
+                      mode = 'lines', line = list(width = 4),opacity = 0.5)%>%
+            layout(
+                xaxis = list(title = "Year", gridcolor = "#bfbfbf", domain = c(0, 0.98)),
+                yaxis = list(title = "Amount (USD million)", gridcolor = "#bfbfbf"), 
+                plot_bgcolor = plotcolor, 
+                paper_bgcolor = papercolor,
+                hovermode = 'compare',
+                yaxis2 = list(overlaying = "y", 
+                              title = "Amount (USD million)", side = "right")
+            )
+        #p <- ggplot(melt_export_import, aes(x = Year, y = value, fill=variable)) + 
+        #    geom_bar(stat = 'identity', position=position_dodge(), colour = "black") +
+        #    ylab("Amount (US$)") + xlab("Year") 
+        #ggplotly(p)
     })
     
     output$ExportProportion <- renderPlotly({
-        plot_ly(data = export_proportion, x = ~Year) %>%
-            filter(Year %in% input$FilterYear) %>%
-            group_by(Year) %>%
-            add_trace(x = "Oil & Gas", y = ~Crude.Oil, name = "Crude Oil", 
-                      text = ~Crude.Oil, textposition = 'auto') %>%
-            add_trace(x = "Oil & Gas", y = ~Oil.Product, name = "Oil Product",
-                      text = ~Oil.Product, textposition = 'auto') %>%
-            add_trace(x = "Oil & Gas", y = ~Gas, name = "Gas",
-                      text = ~Gas, textposition = 'auto') %>%
-            add_trace(x = "Non-Oil & Gas", y = ~Agriculture, name = "Agriculture",
-                      text = ~Agriculture, textposition = 'auto') %>%
-            add_trace(x = "Non-Oil & Gas", y = ~Industry, name = "Industry",
-                      text = ~Industry, textposition = 'auto') %>%
-            add_trace(x = "Non-Oil & Gas", y = ~Mining, name = "Mining",
-                      text = ~Mining, textposition = 'auto') %>%
-            add_trace(x = "Non-Oil & Gas", y = ~Others, name = "Others",
-                      text = ~Others, textposition = 'auto') %>%
-            layout(yaxis = list(title = "Proportion", range = c(0, 200000)), 
-                   barmode = "stack", plot_bgcolor = plotcolor,
-                   paper_bgcolor = papercolor)
+        filtered_export_proportion <- filter(export_proportion, Year == input$FilterYear)
+        YearValue <- paste("Export at", filtered_export_proportion$Year)
+        a <- ggplot(data = filtered_export_proportion, label="Year") +
+            geom_mosaic(aes(x = product(Subcategory, Category), fill=Subcategory, weight = Import), divider = ddecker(), na.rm=TRUE, offset = 0.002) +
+            #scale_fill_manual(values = c("#d8b365", "#f5f5f5", "#5ab4ac", "#d8b365", "#f5f5f5", "#5ab4ac", "#5ab4ac"))+
+            scale_y_continuous(labels=scales::percent)+
+            #theme(axis.text.x=element_text(angle=35))+
+            #scale_x_productlist("Age", labels=labels)+
+            labs(x = YearValue, title='Proportion of Exported Goods')
+        
+        ggplotly(a)
     })
     
     output$ImportProportion <- renderPlotly({
@@ -288,20 +338,78 @@ server <- function(input, output) {
             add_lines(data = export_partners, x = ~Year, y = ~Export, color = ~Destination, mode= 'lines')%>%
             add_markers(data = export_partners, x = ~Year, y = ~Export, color = ~Destination, mode= 'markers')
     })
+    
+    output$ImportPartnerMap <- renderLeaflet({
+        tmap_mode("view")
+        filteringYear <- filter(filtered_export_import_map, Year == input$FilterYearMap)
+        map <- tm_shape(filteringYear)+
+            tm_bubbles(col = "red",
+                       size = "ImportValue",
+                       border.col = "black",
+                       border.lwd = 1)
+        tmap_leaflet(map)
+    })
+    
+    output$ExportPartnerMap <- renderLeaflet({
+        tmap_mode("view")
+        filteringYear <- filter(filtered_export_import_map, Year == input$FilterYearMap)
+        map <- tm_shape(filteringYear)+
+            tm_bubbles(col = "green",
+                       size = "ExportValue",
+                       border.col = "black",
+                       border.lwd = 1)
+        tmap_leaflet(map)
+    })
     #---------------------------------------------------------------------------------------------------------------------------
     
     #-----------------------------------------------------------Dashboard 3 (Trade Balance)-------------------------------------
     output$timeseries <- renderPlotly({
-        plot_ly(source = "source") %>% 
+        plot_ly(source = "source") %>%
+            
             add_lines(data = ds, x= ~Year, y=~value,color=~variable,
-                      mode = 'lines+markers', line = list(width = 3))%>% 
-            add_markers(data = ds2, x= ~Year, y=~value,color=~variable)%>%
+                      mode = 'lines', marker = list(width = 2), opacity = 0.5)%>%
+            add_lines(data = ds2,x= ~Year, y=~value,
+                      marker =list(color = col(), width = 10),yaxis = "y2", name = "TradeBalance", opacity = 0.6)%>%
+            #add_lines(data = ds2, x=~Year, y=~value, color=~variable,
+            #mode = 'lines', line=list(width=5),yaxis = "y2", opacity = 0.8)%>%
             layout(
                 xaxis = list(title = "Year", gridcolor = "#bfbfbf", domain = c(0, 0.98)),
-                yaxis = list(title = "Amount", gridcolor = "#bfbfbf"), 
+                yaxis = list(title = "Amount (USD million)", gridcolor = "#bfbfbf"),
                 plot_bgcolor = plotcolor,
-                paper_bgcolor = papercolor
+                paper_bgcolor = papercolor,
+                hovermode = 'compare',
+                yaxis2 = list(overlaying = "y",
+                              title = "Trade Balance Amount (USD million)", side = "right", color = "green")
             )
+        #plot_ly(source = "source") %>% 
+        #    add_lines(data = ds, x= ~Year, y=~value,color=~variable,
+        #              mode = 'lines+markers', line = list(width = 3))%>% 
+        #    add_markers(data = ds2, x= ~Year, y=~value,color=~variable)%>%
+        #    layout(
+        #        xaxis = list(title = "Year", gridcolor = "#bfbfbf", domain = c(0, 0.98)),
+        #        yaxis = list(title = "Amount", gridcolor = "#bfbfbf"), 
+        #        plot_bgcolor = plotcolor,
+        #        paper_bgcolor = papercolor
+        #    )
+    })
+    
+    output$scatter <- renderPlotly({
+        plot_ly(data = finaldata)%>%
+            filter(Year %in% input$FilterYear3) %>%
+            group_by(Year) %>%
+            add_markers(x=~Exportpercentile, y=~Importpercentile,
+                        hoverinfo = 'text',
+                        text = ~paste('</br> Country: ', Countries,
+                                      '</br> Import Value: $', Import.Value,
+                                      '</br> Export Value: $', Export.Value), 
+                        marker = list(colorbar=list(title = "Trade Balance"), 
+                                      color=~Tradebalance,colorscale='YlOrRd', showscale = TRUE))%>%
+            layout(
+                shapes=list(
+                    list(type='line', x0= 50, x1= 50, y0=0, y1=100, line=list(dash='dot', width=1)),
+                    list(type='line', x0= 0, x1=100, y0=50, y1=50, line=list(dash='dot', width=1)))
+            )
+        
     })
     #---------------------------------------------------------------------------------------------------------------------------
 }
