@@ -8,6 +8,7 @@ library(shinyWidgets)
 library(sf)
 library(tmap)
 library(leaflet)
+library(ggmosaic)
 
 #----------------------------------------Package installation--------------------------------------------
 packages = c('tinytex','plotly', 'RColorBrewer','classInt','ggthemes',
