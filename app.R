@@ -107,7 +107,7 @@ names(export_import_by_country)[names(export_import_by_country) == "Export Value
 #---------------------------------------Dashboard 1-2c------------------------------------------------------
 #Export_Import by country on map
 export_import_map <- read_csv("data/ExportImportByCountriesLongLat.csv")
-counties<-readOGR("data/WorldMap/ne_10m_admin_0_countries.shp", layer="ne_10m_admin_0_countries")
+global_map <- map_data("world")
 #-----------------------------------------------------------------------------------------------------------
 
 #-----------------------------Data preprocessing for Dashboard 3 (Trade Balance)----------------------------
@@ -133,7 +133,7 @@ ds <- filter(ds,variable != "Tradebalance")
 # Set some colors
 plotcolor <- "#F5F1DA"
 papercolor <- "#E3DFC8"
-col <- reactive({ifelse(ds2$value >=0, "green","red")})
+col <- reactive({ifelse(ds2$value >=0, "#5B84B1FF","FC766AFF")})
 
 data <- read.csv("data/ExportImportByCountries.csv")
 tempdata = mutate(data, Importpercentile = ntile(data$Import.Value,100))
@@ -380,9 +380,9 @@ server <- function(input, output) {
         mapExport <- filter(export_import_map, Year == input$FilterYearMap)
         
         map <- ggplot()+
-            geom_polygon(data=counties, aes(x=long, y=lat, group=group)) +  
+            geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
             geom_point(data=mapExport, aes(x=Longitude, y=Latitude, size=ExportValue,
-                                           label=Countries, label2=Year, label3=ExportValue), color="red")
+                                           label=Countries, label2=Year, label3=ExportValue), color="#F9665E")
         
         ggplotly(map)
     })
@@ -409,9 +409,9 @@ server <- function(input, output) {
         mapExport <- filter(export_import_map, Year == input$FilterYearMapImport)
         
         map <- ggplot()+
-            geom_polygon(data=counties, aes(x=long, y=lat, group=group)) +  
+            geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
             geom_point(data=mapExport, aes(x=Longitude, y=Latitude, size=ImportValue,
-                                           label=Countries, label2=Year, label3=ImportValue), color="green")
+                                           label=Countries, label2=Year, label3=ImportValue), color="#44D362")
         
         ggplotly(map)
     })
@@ -421,32 +421,17 @@ server <- function(input, output) {
     #-----------------------------------------------------------Dashboard 3 (Trade Balance)-------------------------------------
     output$timeseries <- renderPlotly({
         plot_ly(source = "source") %>%
-            
             add_lines(data = ds, x= ~Year, y=~value,color=~variable,
-                      mode = 'lines', marker = list(width = 2), opacity = 0.5)%>%
-            add_lines(data = ds2,x= ~Year, y=~value,
+                      mode = 'lines', marker = list(width = 3))%>%
+            add_trace(data = ds2,x= ~Year, y=~value,
                       marker =list(color = col(), width = 10),yaxis = "y2", name = "TradeBalance", opacity = 0.6)%>%
-            #add_lines(data = ds2, x=~Year, y=~value, color=~variable,
-            #mode = 'lines', line=list(width=5),yaxis = "y2", opacity = 0.8)%>%
             layout(
-                xaxis = list(title = "Year", gridcolor = "#bfbfbf", domain = c(0, 0.98)),
-                yaxis = list(title = "Amount (USD million)", gridcolor = "#bfbfbf"),
-                plot_bgcolor = plotcolor,
-                paper_bgcolor = papercolor,
+                xaxis = list(title = "Year", domain = c(0, 0.98)),
+                yaxis = list(title = "Amount (USD million)", domain = c(0, 0.98)),
                 hovermode = 'compare',
                 yaxis2 = list(overlaying = "y",
-                              title = "Trade Balance Amount (USD million)", side = "right", color = "green")
+                              title = "Trade Balance Amount (USD million)", side = "right")
             )
-        #plot_ly(source = "source") %>% 
-        #    add_lines(data = ds, x= ~Year, y=~value,color=~variable,
-        #              mode = 'lines+markers', line = list(width = 3))%>% 
-        #    add_markers(data = ds2, x= ~Year, y=~value,color=~variable)%>%
-        #    layout(
-        #        xaxis = list(title = "Year", gridcolor = "#bfbfbf", domain = c(0, 0.98)),
-        #        yaxis = list(title = "Amount", gridcolor = "#bfbfbf"), 
-        #        plot_bgcolor = plotcolor,
-        #        paper_bgcolor = papercolor
-        #    )
     })
     
     output$scatter <- renderPlotly({
