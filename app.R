@@ -115,7 +115,9 @@ global_map <- map_data("world")
 
 #-----------------------------Data Preprocessing for Product Category---------------------------------------
 exportCategory <- read_csv("data/Export_Goods_Category.csv")
+exportCategory$label <- paste(exportCategory$Destination, ", US$ ", exportCategory$Export, " Millions")
 importCategory <- read_csv("data/Import_Goods_Category.csv")
+importCategory$label <- paste(importCategory$Origin, ", US$ ", importCategory$Import, " Millions")
 #-----------------------------------------------------------------------------------------------------------
 
 #-----------------------------Data preprocessing for Dashboard 3 (Trade Balance)----------------------------
@@ -399,7 +401,7 @@ server <- function(input, output) {
         category <- filter(exportCategory, Year == input$FilterYearMap)
         newTitle <- paste0("Category of Product exported in ", input$FilterYearMap)
         treemap <- treemap(category,
-                           index = c("Type", "Export"),
+                           index = c("Type", "label"),
                            vSize="Export",
                            vColor="Type",
                            palette=brewer.pal(n=8, "Set3"),
@@ -442,7 +444,7 @@ server <- function(input, output) {
         category <- filter(importCategory, Year == input$FilterYearMapImport)
         newTitle <- paste0("Category of Product imported in ", input$FilterYearMapImport)
         treemap <- treemap(category,
-                           index = c("Type", "Import"),
+                           index = c("Type", "label"),
                            vSize="Import",
                            vColor="Type",
                            palette=brewer.pal(n=8, "Set3"),
