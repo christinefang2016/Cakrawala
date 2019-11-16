@@ -439,8 +439,8 @@ server <- function(input, output) {
     })
     
     output$ImportGoodsCategory <- renderD3tree2({
-        category <- filter(importCategory, Year == input$FilterYearMap)
-        newTitle <- paste0("Category of Product imported in ", input$FilterYearMap)
+        category <- filter(importCategory, Year == input$FilterYearMapImport)
+        newTitle <- paste0("Category of Product imported in ", input$FilterYearMapImport)
         treemap <- treemap(category,
                            index = c("Type", "Import"),
                            vSize="Import",
