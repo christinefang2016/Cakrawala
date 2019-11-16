@@ -14,6 +14,9 @@ library(raster)
 library(rgdal)
 library(sf)
 library(rgeos)
+library('treemap')
+library(RColorBrewer)
+library(d3treeR)
 
 #----------------------------------------Package installation--------------------------------------------
 packages = c('tinytex','plotly', 'RColorBrewer','classInt','ggthemes',
@@ -108,6 +111,11 @@ names(export_import_by_country)[names(export_import_by_country) == "Export Value
 #Export_Import by country on map
 export_import_map <- read_csv("data/ExportImportByCountriesLongLat.csv")
 global_map <- map_data("world")
+#-----------------------------------------------------------------------------------------------------------
+
+#-----------------------------Data Preprocessing for Product Category---------------------------------------
+exportCategory <- read_csv("data/Export_Goods_Category.csv")
+importCategory <- read_csv("data/Import_Goods_Category.csv")
 #-----------------------------------------------------------------------------------------------------------
 
 #-----------------------------Data preprocessing for Dashboard 3 (Trade Balance)----------------------------
@@ -386,6 +394,20 @@ server <- function(input, output) {
         
         ggplotly(map)
     })
+    
+    output$ExportGoodsCategory <- renderD3tree2({
+        category <- filter(exportCategory, Year == input$FilterYearMap)
+        newTitle <- paste0("Category of Product exported in ", input$FilterYearMap)
+        treemap <- treemap(category,
+                           index = c("Type", "Export"),
+                           vSize="Export",
+                           vColor="Type",
+                           palette=brewer.pal(n=8, "Set3"),
+                           title=newTitle,
+                           title.legend = "Amount (Million US$)"
+        )
+        d3tree2(treemap, rootname = "Export of product (Million US$)")
+    })
     #---------------------------------------------------------------------------------------------------------------------------
     
     #-----------------------------------------------------------Dashboard 1-2b Import-----------------------------------------------------
@@ -414,6 +436,20 @@ server <- function(input, output) {
                                            label=Countries, label2=Year, label3=ImportValue), color="#44D362")
         
         ggplotly(map)
+    })
+    
+    output$ImportGoodsCategory <- renderD3tree2({
+        category <- filter(importCategory, Year == input$FilterYearMap)
+        newTitle <- paste0("Category of Product imported in ", input$FilterYearMap)
+        treemap <- treemap(category,
+                           index = c("Type", "Import"),
+                           vSize="Import",
+                           vColor="Type",
+                           palette=brewer.pal(n=8, "Set3"),
+                           title=newTitle,
+                           title.legend = "Amount (Million US$)"
+        )
+        d3tree2(treemap, rootname = "Export of Import (Million US$)")
     })
     #---------------------------------------------------------------------------------------------------------------------------
     
