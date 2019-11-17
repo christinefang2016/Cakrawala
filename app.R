@@ -27,12 +27,10 @@ packages = c('rsconnect', 'tinytex','plotly', 'RColorBrewer','classInt','ggtheme
 for(p in packages){
     if(!require(p, character.only = T)){
         install.packages(p)
-        if(p == 'remotes'){
-            remotes::install_github("d3treeR/d3treeR")
-        }
     }
     library(p, character.only = T)
 }
+remotes::install_github("d3treeR/d3treeR")
 #--------------------------------------------------------------------------------------------------------
 
 #---------------------------------------- Total Import and Export of Indonesia (Dashboard 1-1a)----------
