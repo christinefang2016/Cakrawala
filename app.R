@@ -28,6 +28,9 @@ for(p in packages){
     }
     library(p, character.only = T)
 }
+
+install.packages("remotes")
+remotes::install_github("d3treeR/d3treeR")
 #--------------------------------------------------------------------------------------------------------
 
 #---------------------------------------- Total Import and Export of Indonesia (Dashboard 1-1a)----------
