@@ -1,3 +1,4 @@
+library(rsconnect)
 library(shiny)
 library(shinydashboard)
 library(tidyverse)
@@ -12,25 +13,26 @@ library(ggmosaic)
 library(htmltools)
 library(raster)
 library(rgdal)
-library(sf)
 library(rgeos)
+require(maps)
+require(mapdata)
 library('treemap')
 library(RColorBrewer)
 library(d3treeR)
 
 #----------------------------------------Package installation--------------------------------------------
-packages = c('tinytex','plotly', 'RColorBrewer','classInt','ggthemes',
+packages = c('rsconnect', 'tinytex','plotly', 'RColorBrewer','classInt','ggthemes',
              'tidyverse', 'pivottabler', 'dplyr','shiny','shinythemes', 'lubridate',
-             'sf', 'tmap', 'shinyWidgets', 'leaflet', 'ggmosaic', 'htmltools', 'raster', 'rgdal', 'rgeos')
+             'sf', 'tmap', 'shinyWidgets', 'leaflet', 'ggmosaic', 'htmltools', 'raster', 'rgdal', 'rgeos', 'remotes')
 for(p in packages){
     if(!require(p, character.only = T)){
         install.packages(p)
+        if(p == 'remotes'){
+            remotes::install_github("d3treeR/d3treeR")
+        }
     }
     library(p, character.only = T)
 }
-
-install.packages("remotes")
-remotes::install_github("d3treeR/d3treeR")
 #--------------------------------------------------------------------------------------------------------
 
 #---------------------------------------- Total Import and Export of Indonesia (Dashboard 1-1a)----------
@@ -138,6 +140,9 @@ CleanedData <- ImportExport %>%
 Tradebalance = CleanedData$TotalExport - CleanedData$TotalImport
 CleanedData= cbind(CleanedData, Tradebalance)
 
+# Change year format to integer
+#CleanedData$Year <- as.integer(CleanedData$Year)
+
 #reshape
 ds <- reshape2::melt(CleanedData, id = "Year")
 ds2 <- filter(ds,variable == "Tradebalance")
@@ -195,7 +200,8 @@ ui <- dashboardPage(
             menuItem("Dashboard 1-1 Overall", tabName = "dashboard1-1", icon = icon("dashboard")),
             menuItem("Dashboard 1-2 Export", tabName = "dashboard1-2", icon = icon("dashboard")),
             menuItem("Dashboard 1-2 Import", tabName = "dashboard1-2b", icon = icon("dashboard")),
-            menuItem("Dashboard 3", tabName = "dashboard3", icon = icon("dashboard"))
+            menuItem("Dashboard 3", tabName = "dashboard3", icon = icon("dashboard")),
+            menuItem("Dashboard 4", tabName = "dashboard4", icon = icon("dashboard"))
         )
     ),
     dashboardBody(
@@ -203,10 +209,6 @@ ui <- dashboardPage(
             #--------------------------------------------Dashboard 1-1 Tab-------------------------------------------------
             tabItem(tabName = "dashboard1-1",
                     fluidRow(
-                        #box(title = "Import/Export of Indonesia",
-                        #    mainPanel(
-                        #    plotlyOutput("ImportExport", height = 500))),
-                        
                         column(6, plotlyOutput("ImportExport"), height = "600px"),
                         
                         sliderInput(
@@ -252,7 +254,8 @@ ui <- dashboardPage(
                             sep = "",
                             animate = animationOptions(loop = TRUE)),
                         
-                        column(6, plotlyOutput("ExportPartnerMap"), height = "600px")
+                        column(6, plotlyOutput("ExportPartnerMap"), height = "600px"),
+                        column(6, d3tree2Output("ExportGoodsCategory"), height = "600px")
                     )
             ),
             #--------------------------------------------------------------------------------------------------------------
@@ -282,14 +285,8 @@ ui <- dashboardPage(
                             animate = animationOptions(loop = TRUE)),
                         
                         
-                        column(6, plotlyOutput("ImportPartnerMap"), height = "600px")
-                        #radioButtons(
-                        #    inputId = "ProductCategory",
-                        #    label = "Category:",
-                        #    choices = import_proportion$Year,
-                        #    selected = NULL
-                        #),
-                        #mainPanel(plotlyOutput("exportCountry"))
+                        column(6, plotlyOutput("ImportPartnerMap"), height = "600px"),
+                        column(6, d3tree2Output("ImportGoodsCategory"), height = "600px")
                     )
             ),
             #-----------------------------------------------------------------------------------------------------------------------------------
@@ -347,8 +344,6 @@ server <- function(input, output) {
             geom_mosaic(aes(x = product(Subcategory, Category), fill=Subcategory, weight = Import), divider = ddecker(), na.rm=TRUE, offset = 0.002) +
             #scale_fill_manual(values = c("#d8b365", "#f5f5f5", "#5ab4ac", "#d8b365", "#f5f5f5", "#5ab4ac", "#5ab4ac"))+
             scale_y_continuous(labels=scales::percent)+
-            #theme(axis.text.x=element_text(angle=35))+
-            #scale_x_productlist("Age", labels=labels)+
             labs(x = YearValue, title='Proportion of Exported Goods') +
             theme(plot.background = element_rect(fill = papercolor),
                   panel.background = element_rect(fill = plotcolor))
@@ -395,7 +390,7 @@ server <- function(input, output) {
         map <- ggplot()+
             geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
             geom_point(data=mapExport, aes(x=Longitude, y=Latitude, size=ExportValue,
-                                           label=Countries, label2=Year, label3=ExportValue), color="#F9665E")
+                                           label=Countries, label2=Year, label3=ExportValue), color="red")
         
         ggplotly(map)
     })
@@ -433,12 +428,12 @@ server <- function(input, output) {
     })
     
     output$ImportPartnerMap <- renderPlotly({
-        mapExport <- filter(export_import_map, Year == input$FilterYearMapImport)
+        mapImport <- filter(export_import_map, Year == input$FilterYearMapImport)
         
         map <- ggplot()+
             geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
-            geom_point(data=mapExport, aes(x=Longitude, y=Latitude, size=ImportValue,
-                                           label=Countries, label2=Year, label3=ImportValue), color="#44D362")
+            geom_point(data=mapImport, aes(x=Longitude, y=Latitude, size=ImportValue,
+                                           label=Countries, label2=Year, label3=ImportValue), color="green")
         
         ggplotly(map)
     })
