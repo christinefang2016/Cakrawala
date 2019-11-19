@@ -19,19 +19,29 @@ require(mapdata)
 library('treemap')
 library(RColorBrewer)
 library(d3treeR)
+library(htmlwidgets)
+library(dplyr)
+library(ggrepel)
+library(scales)
+library(d3Tree)
+library(sp)
 
 #----------------------------------------Package installation--------------------------------------------
-packages = c('rsconnect', 'tinytex','plotly', 'RColorBrewer','classInt','ggthemes',
-             'tidyverse', 'pivottabler', 'dplyr','shiny','shinythemes', 'lubridate',
-             'sf', 'tmap', 'shinyWidgets', 'leaflet', 'ggmosaic', 'htmltools', 'raster', 'rgdal', 'rgeos', 'remotes')
-for(p in packages){
-    if(!require(p, character.only = T)){
-        install.packages(p)
-    }
-    library(p, character.only = T)
-}
-remotes::install_github("d3treeR/d3treeR")
+#packages = c('rsconnect', 'tinytex','plotly', 'RColorBrewer','classInt','ggthemes',
+#             'tidyverse', 'pivottabler', 'dplyr','shiny','shinythemes', 'lubridate',
+#             'sf', 'tmap', 'shinyWidgets', 'leaflet', 'ggmosaic', 'htmltools', 'raster', 'rgdal', 'rgeos', 'remotes',
+#             'ggrepel', 'scales', 'd3Tree')
+#for(p in packages){
+#    if(!require(p, character.only = T)){
+#        install.packages(p)
+#    }
+#    library(p, character.only = T)
+#}
 #--------------------------------------------------------------------------------------------------------
+
+#-----------------------------------------CODE TO STYLE THE FONT OF TREEMAP------------------------------
+
+#---------------------------------------------------------------------------------------------------------
 
 #---------------------------------------- Total Import and Export of Indonesia (Dashboard 1-1a)----------
 #TOTAL EXPORT GROUP_BY YEAR
@@ -117,10 +127,29 @@ global_map <- map_data("world")
 #-----------------------------------------------------------------------------------------------------------
 
 #-----------------------------Data Preprocessing for Product Category---------------------------------------
-exportCategory <- read_csv("data/Export_Goods_Category.csv")
+exportCategory <- read_csv("data/Export_Goods_Category_LongLat.csv")
 exportCategory$label <- paste(exportCategory$Destination, ", US$ ", exportCategory$Export, " Millions")
-importCategory <- read_csv("data/Import_Goods_Category.csv")
+importCategory <- read_csv("data/Import_Goods_Category_LongLat.csv")
 importCategory$label <- paste(importCategory$Origin, ", US$ ", importCategory$Import, " Millions")
+
+exportCategoryTotal <- aggregate(exportCategory$Export,
+                                 by = list(exportCategory$Year, exportCategory$Type),
+                                 FUN = sum,
+                                 na.rm = TRUE)
+names(exportCategoryTotal)[names(exportCategoryTotal) == "Group.1"] <- "Year"
+names(exportCategoryTotal)[names(exportCategoryTotal) == "Group.2"] <- "Type"
+names(exportCategoryTotal)[names(exportCategoryTotal) == "x"] <- "Export"
+exportCategoryTotal$label <- paste0("US$ ", exportCategoryTotal$Export)
+
+
+importCategoryTotal <- aggregate(importCategory$Import,
+                                 by = list(importCategory$Year, importCategory$Type),
+                                 FUN = sum,
+                                 na.rm = TRUE)
+names(importCategoryTotal)[names(importCategoryTotal) == "Group.1"] <- "Year"
+names(importCategoryTotal)[names(importCategoryTotal) == "Group.2"] <- "Type"
+names(importCategoryTotal)[names(importCategoryTotal) == "x"] <- "Import"
+importCategoryTotal$label <- paste0("US$ ", importCategoryTotal$Import)
 #-----------------------------------------------------------------------------------------------------------
 
 #-----------------------------Data preprocessing for Dashboard 3 (Trade Balance)----------------------------
@@ -157,158 +186,287 @@ finaldata = mutate(tempdata, Exportpercentile = ntile(tempdata$Export.Value,100)
 finaldata$Tradebalance <- finaldata$Export.Value - finaldata$Import.Value
 #-----------------------------------------------------------------------------------------------------------
 
+#-------------------------------------------------Map of Indonesia's Port-----------------------------------
+exportPorts <- read_csv("data/Export_by_Port_LongLat.csv")
+importPorts <- read_csv("data/Import_by_Ports_LongLat.csv")
+#-----------------------------------------------------------------------------------------------------------
+
+#-------------------------------------------------Slope graph----------------------------------------------
+#upload data
+country_lists <- read.csv("data/SlopeGraphExportPartners.csv")
+#rename column year from X2000 to 2000 and so on
+colnames(country_lists) <- c("Destination", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007", 
+                             "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018")
+yearList <- c("2000" = "2000", "2001" = "2001", "2002" = "2002", "2003" = "2003", "2004" = "2004", "2005" = "2005",
+              "2006" = "2006", "2007" = "2007", "2008" = "2008", "2009" = "2009", "2010" = "2010","2011" = "2011",
+              "2012" = "2012", "2013" = "2013", "2014" = "2014", "2015" = "2015", "2016" = "2016", "2017" = "2017",
+              "2018" = "2018")
+#-----------------------------------------------------------------------------------------------------------
+
+#-------------------------------------------------Info box--------------------------------------------------
+mostRecentYear <- max(export_by_year$Year)
+infoBox_export <- filter(export_by_year, Year == mostRecentYear)
+title_total_export <- paste("Total Export (", mostRecentYear, ")")
+value_total_export <- paste("US", dollar_format()(infoBox_export$EXPORT*1000))
+
+mostRecentYearIm <- max(import_by_year$Year)
+infoBox_import <- filter(import_by_year, Year == mostRecentYearIm)
+title_total_import <- paste("Total Import (", mostRecentYearIm, ")")
+value_total_import <- paste("US", dollar_format()(infoBox_import$IMPORT*1000))
+
+value_tradebalance <- paste("US", dollar_format()(infoBox_export$EXPORT*1000 - infoBox_import$IMPORT*1000))
+#-----------------------------------------------------------------------------------------------------------
+
 ui <- dashboardPage(
-    dashboardHeader(title = "Cakrawala",
-                    dropdownMenu(type = "messages",
-                                 messageItem(
-                                     from = "Sales Dept",
-                                     message = "Sales are steady this month."
-                                 ),
-                                 messageItem(
-                                     from = "New User",
-                                     message = "How do I register?",
-                                     icon = icon("question"),
-                                     time = "13:45"
-                                 ),
-                                 messageItem(
-                                     from = "Support",
-                                     message = "The new server is ready.",
-                                     icon = icon("life-ring"),
-                                     time = "2014-12-01"
-                                 )
-                    ),
-                    dropdownMenu(type = "notifications",
-                                 notificationItem(
-                                     text = "5 new users today",
-                                     icon("users")
-                                 ),
-                                 notificationItem(
-                                     text = "12 items delivered",
-                                     icon("truck"),
-                                     status = "success"
-                                 ),
-                                 notificationItem(
-                                     text = "Server load at 86%",
-                                     icon = icon("exclamation-triangle"),
-                                     status = "warning"
-                                 )
-                    )),
+    dashboardHeader(
+        tags$li(class = "dropdown",
+                tags$style(".main-header {max-height: 100px}")
+                #tags$style(".main-header .logo {height: 100px}")
+        ),
+        # Use image in title
+        title = tags$a(href='http://company.fr/',
+                       tags$img(src='Cakrawala.png', height=50, width=180))
+        #title = img(src = "Cakrawala.png", height=100, width=230), = 600
+    ),
     dashboardSidebar(
         sidebarMenu(
-            menuItem("Dashboard 1-1 Overall", tabName = "dashboard1-1", icon = icon("dashboard")),
-            menuItem("Dashboard 1-2 Export", tabName = "dashboard1-2", icon = icon("dashboard")),
-            menuItem("Dashboard 1-2 Import", tabName = "dashboard1-2b", icon = icon("dashboard")),
-            menuItem("Dashboard 3", tabName = "dashboard3", icon = icon("dashboard")),
-            menuItem("Dashboard 4", tabName = "dashboard4", icon = icon("dashboard"))
+            menuItem("HOME", tabName = "HOME", icon = icon("dashboard")),
+            menuItem("IMPORT", tabName = "IMPORT", icon = icon("dashboard")),
+            menuItem("IMPORT PRODUCT", tabName = "IMPORTPRODUCT", icon = icon("dashboard")),
+            menuItem("EXPORT", tabName = "EXPORT", icon = icon("dashboard")),
+            menuItem("EXPORT PRODUCT", tabName = "EXPORTPRODUCT", icon = icon("dashboard")),
+            menuItem("SLOPE GRAPH", tabName = "SLOPEGRAPH", icon = icon("dashboard")),
+            menuItem("PRODUCT CATEGORY (IMPORT)", tabName = "IMPORTCATEGORY", icon = icon("dashboard")),
+            menuItem("PRODUCT CATEGORY (EXPORT)", tabName = "EXPORTCATEGORY", icon = icon("dashboard")),
+            menuItem("PORTS OF INDO", tabName = "PORTINDO", icon = icon("dashboard"))
         )
     ),
     dashboardBody(
+        #-------------------------------------------------------HOME DASHBOARD-------------------------------------------------
         tabItems(
-            #--------------------------------------------Dashboard 1-1 Tab-------------------------------------------------
-            tabItem(tabName = "dashboard1-1",
+            tabItem(tabName = "HOME",
                     fluidRow(
-                        column(6, plotlyOutput("ImportExport"), height = "600px"),
+                        infoBox(title_total_export, value_total_export, icon = icon("arrow-up")),
+                        infoBox(title_total_import, value_total_import, icon = icon("arrow-down")),
+                        infoBox("Total Trade Balance (2019)", value_tradebalance, icon = icon("money-bill-alt")),
                         
-                        sliderInput(
-                            inputId = "FilterYear",
-                            label = "Year",
-                            min = min(export_proportion$Year),
-                            max = max(export_proportion$Year),
-                            value = max(export_proportion$Year),
-                            sep = "",
-                            animate = animationOptions(loop = TRUE)),
+                        column(12, 
+                               h1("Indonesia Trade Balance"),
+                               plotlyOutput(outputId = "timeseries", height = "600px")),
                         
+                        column(12, h1("Magic Quadrant for Indonesia Trading Partner")),
+                        column(10, plotlyOutput("scatter", height = "600px")),
                         
-                        box(title = "Proportion of Exported Goods",
-                            plotlyOutput("ExportProportion", height = 500)),
-                        
-                        box(title = "Proportion of Imported Goods",
-                            plotlyOutput("ImportProportion", height = 500))
+                        column(2, 
+                               sliderInput(
+                                   inputId = "FilterYearDash1",
+                                   label="Year",
+                                   min = 2002,
+                                   max = 2018,
+                                   value = 2002,
+                                   sep = "",
+                                   animate = animationOptions(loop = TRUE)))
                     )
             ),
-            #-------------------------------------------------------------------------------------------------------------
+            #-------------------------------------------------------------------------------------------------------------------
             
-            #-------------------------------------------Dashboard1-2 Export------------------------------------------------------
-            tabItem(tabName = "dashboard1-2",
+            
+            #------------------------------------------------IMPORT DASHBOARD---------------------------------------------------
+            tabItem(tabName = "IMPORT",
                     fluidRow(
-                        sidebarPanel(
-                            selectInput(inputId = "order",
-                                        label = "Top K",
-                                        choices = c("All" = "All",
-                                                    "5" = "5",
-                                                    "10" = "10",
-                                                    "15" = "15",
-                                                    "20" = "20"))
-                        ),
+                        column(5, 
+                               h1("Proportion of Indonesia Import Goods"),
+                               plotlyOutput("ImportProportion", height = "500px")),
                         
-                        column(6, plotlyOutput("LineExport"), height = "500px"),
+                        column(5, 
+                               h1("Import of Top K Country"),
+                               plotlyOutput("LineImport", height = "500px")),
                         
-                        sliderInput(
-                            inputId = "FilterYearMap",
+                        column(2,
+                               sliderInput(
+                                   inputId = "FilterYearImport",
+                                   label = "Year",
+                                   min = min(export_import_map$Year),
+                                   max = max(export_import_map$Year),
+                                   value = max(export_import_map$Year),
+                                   sep = "",
+                                   animate = animationOptions(loop = TRUE)),
+                               selectInput(inputId = "orderImport",
+                                           label = "Top K",
+                                           choices = c("All" = "All",
+                                                       "5" = "5",
+                                                       "10" = "10",
+                                                       "15" = "15",
+                                                       "20" = "20"))),
+                        column(10, 
+                               h1("Mapping of Indonesia Import"),
+                               plotlyOutput("ImportPartnerMap", height = "600px"))
+                    )
+            ),
+            #-------------------------------------------------------------------------------------------------------------------
+            
+            
+            #---------------------------------------------IMPORT PRODUCT DASHBOARD----------------------------------------------
+            tabItem(tabName = "IMPORTPRODUCT",
+                    fluidRow(
+                        column(12, h1("Import Product Category")),
+                        column(10, plotOutput("ImportGoodsCategory", height="800px")),
+                        column(2, sliderInput(
+                            inputId = "FilterYearImportProduct",
                             label = "Year",
                             min = min(export_import_map$Year),
                             max = max(export_import_map$Year),
                             value = max(export_import_map$Year),
                             sep = "",
-                            animate = animationOptions(loop = TRUE)),
-                        
-                        column(6, plotlyOutput("ExportPartnerMap"), height = "600px"),
-                        column(6, d3tree2Output("ExportGoodsCategory"), height = "600px")
+                            animate = animationOptions(loop = TRUE)))
                     )
             ),
-            #--------------------------------------------------------------------------------------------------------------
+            #-------------------------------------------------------------------------------------------------------------------
             
             
-            #--------------------------------------------Dashboard 1-2b Import---------------------------------------------
-            tabItem(tabName = "dashboard1-2b",
+            #------------------------------------------------EXPORT DASHBOARD---------------------------------------------------
+            tabItem(tabName = "EXPORT",
                     fluidRow(
-                        sidebarPanel(
-                            selectInput(inputId = "orderImport",
-                                        label = "Top K",
-                                        choices = c("All" = "All",
-                                                    "5" = "5",
-                                                    "10" = "10",
-                                                    "15" = "15",
-                                                    "20" = "20"))
-                        ),
-                        column(6, plotlyOutput("LineImport"), height = "500px"),
+                        column(5, 
+                               h1("Proportion of Indonesia Export Goods"),
+                               plotlyOutput("ExportProportion", height = "500px")),
                         
-                        sliderInput(
-                            inputId = "FilterYearMapImport",
+                        column(5, 
+                               h1("Export of Top K Country"),
+                               plotlyOutput("LineExport", height = "500px")),
+                        
+                        column(2,
+                               sliderInput(
+                                   inputId = "FilterYearExport",
+                                   label = "Year",
+                                   min = min(export_import_map$Year),
+                                   max = max(export_import_map$Year),
+                                   value = max(export_import_map$Year),
+                                   sep = "",
+                                   animate = animationOptions(loop = TRUE)),
+                               selectInput(inputId = "orderExport",
+                                           label = "Top K",
+                                           choices = c("All" = "All",
+                                                       "5" = "5",
+                                                       "10" = "10",
+                                                       "15" = "15",
+                                                       "20" = "20"))),
+                        column(10, 
+                               h1("Mapping of Indonesia Export"),
+                               plotlyOutput("ExportPartnerMap", height = "600px"))
+                    )
+            ),
+            #-------------------------------------------------------------------------------------------------------------------
+            
+            
+            #---------------------------------------------EXPORT PRODUCT DASHBOARD----------------------------------------------
+            tabItem(tabName = "EXPORTPRODUCT",
+                    fluidRow(
+                        column(12, h1("Export Product Category")),
+                        column(10, plotOutput("ExportGoodsCategory", height="800px")),
+                        column(2, sliderInput(
+                            inputId = "FilterYearExportProduct",
                             label = "Year",
                             min = min(export_import_map$Year),
                             max = max(export_import_map$Year),
                             value = max(export_import_map$Year),
                             sep = "",
-                            animate = animationOptions(loop = TRUE)),
-                        
-                        
-                        column(6, plotlyOutput("ImportPartnerMap"), height = "600px"),
-                        column(6, d3tree2Output("ImportGoodsCategory"), height = "600px")
+                            animate = animationOptions(loop = TRUE)))
                     )
             ),
-            #-----------------------------------------------------------------------------------------------------------------------------------
+            #-------------------------------------------------------------------------------------------------------------------
             
             
-            # Second tab content
-            tabItem(tabName = "dashboard3",
-                    h2("Dashboard 3 - Trade Balance"),
+            #---------------------------------------------------SLOPE GRAPH DASHBOARD-------------------------------------------
+            tabItem(tabName = "SLOPEGRAPH",
                     fluidRow(
-                        column(6, plotlyOutput(outputId = "timeseries", height = "600px")),
+                        sidebarPanel(
+                            selectInput(inputId = "Year1",
+                                        label = "From:",
+                                        choices = yearList,
+                                        selected = "2000"),
+                            selectInput(inputId = "Year2",
+                                        label = "From:",
+                                        choices = yearList,
+                                        selected = "2018")
+                        ),
+                        column(8, plotlyOutput("slopegraph", height="900px"))
+                    )
+            ),
+            #-------------------------------------------------------------------------------------------------------------------
+            
+            
+            #------------------------------------------------IMPORT OF PRODUCT CATEGORY DASHBOARD--------------------------------
+            tabItem(tabName = "IMPORTCATEGORY",
+                    fluidRow(
+                        column(12, h1("Trend Import of Product Category")),
+                        column(10, plotlyOutput(outputId = "ImportProductPerCategory", height = "600px")),
+                        column(2, radioButtons(
+                            inputId = "FilterImportCategoryType",
+                            label = "Category:",
+                            choices = unique(importCategory$Type),
+                            selected = NULL
+                        )),
                         
-                        sliderInput(
-                            inputId = "FilterYear3",
+                        column(12, h1("Import Partners of Specific Product Category")),
+                        column(10, plotlyOutput(outputId = "ImportProductCategoryMap", height = "600px")),
+                        column(2, sliderInput(
+                            inputId = "FilterImportCategoryYear",
                             label = "Year",
-                            min = 2002,
-                            max = 2018,
-                            value = 2002,
-                            sep = "",
-                            animate = animationOptions(loop = TRUE)),
-                        column(6, plotlyOutput("scatter"), height = "600px")
+                            min = min(importCategory$Year),
+                            max = max(importCategory$Year),
+                            value = max(importCategory$Year),
+                            sep = "")),
+                    )
+            ),
+            #----------------------------------------------------------------------------------------------------------------------
+            
+            
+            #-----------------------------------------------EXPORT OF PRODUCT CATEGORY DASHBOARD-----------------------------------
+            tabItem(tabName = "EXPORTCATEGORY",
+                    fluidRow(
+                        column(12, h1("Trend Import of Product Category")),
+                        column(10, plotlyOutput(outputId = "ExportProductPerCategory", height = "600px")),
+                        column(2, radioButtons(
+                            inputId = "FilterExportCategoryType",
+                            label = "Category:",
+                            choices = unique(exportCategory$Type),
+                            selected = NULL
+                        )),
+                        
+                        column(12, h1("Import Partners of Specific Product Category")),
+                        column(10, plotlyOutput(outputId = "ExportProductCategoryMap", height = "600px")),
+                        column(2, sliderInput(
+                            inputId = "FilterExportCategoryYear",
+                            label = "Year",
+                            min = min(exportCategory$Year),
+                            max = max(exportCategory$Year),
+                            value = max(exportCategory$Year),
+                            sep = ""))
+                    )
+            ),
+            #---------------------------------------------------------------------------------------------------------------------
+            
+            
+            #---------------------------------------------PORT DISTRIBUTION OF INDONESIA-----------------------------------------
+            tabItem(tabName = "PORTINDO",
+                    fluidRow(
+                        column(12, h1("Port Distribution of Indonesia")),
+                        column(10, plotlyOutput(outputId = "PortMapIndo", height = "700px")),
+                        column(2, selectInput(inputId = "ImportOrExport",
+                                              label = "Import / Export:",
+                                              choices = c("Import" = "Import",
+                                                          "Export" = "Export"))),
+                        column(2, sliderInput(
+                            inputId = "FilterPortYear",
+                            label = "Year",
+                            min = min(exportPorts$Year),
+                            max = max(exportPorts$Year),
+                            value = max(exportPorts$Year),
+                            sep = "")),
                     )
             )
-            
-            
+            #---------------------------------------------------------------------------------------------------------------------
         )
     )
 )
@@ -317,142 +475,7 @@ server <- function(input, output) {
     set.seed(122)
     histdata <- rnorm(500)
     
-    #----------------------------------------------------Dashboard 1-1 Overall-----------------------------------------------------
-    output$ImportExport <- renderPlotly({
-        melt_export_import <- melt(export_import, id.vars = "Year")
-        p <- plot_ly(source = "source") %>% 
-            add_lines(data = melt_export_import, x= ~Year, y=~value,color=~variable,
-                      mode = 'lines', line = list(width = 4),opacity = 0.5)%>%
-            layout(
-                title = "Indonesia's Import and Export over years",
-                xaxis = list(title = "Year", gridcolor = "#bfbfbf", domain = c(0, 0.98)),
-                yaxis = list(title = "Amount (USD million)", gridcolor = "#bfbfbf"), 
-                plot_bgcolor = plotcolor, 
-                paper_bgcolor = papercolor,
-                hovermode = 'compare',
-                yaxis2 = list(overlaying = "y", 
-                              title = "Amount (USD million)", side = "right")
-            )
-    })
-    
-    output$ExportProportion <- renderPlotly({
-        filtered_export_proportion <- filter(export_proportion, Year == input$FilterYear)
-        YearValue <- paste("Export at", filtered_export_proportion$Year)
-        a <- ggplot(data = filtered_export_proportion, label="Year") +
-            geom_mosaic(aes(x = product(Subcategory, Category), fill=Subcategory, weight = Import), divider = ddecker(), na.rm=TRUE, offset = 0.002) +
-            #scale_fill_manual(values = c("#d8b365", "#f5f5f5", "#5ab4ac", "#d8b365", "#f5f5f5", "#5ab4ac", "#5ab4ac"))+
-            scale_y_continuous(labels=scales::percent)+
-            labs(x = YearValue, title='Proportion of Exported Goods') +
-            theme(plot.background = element_rect(fill = papercolor),
-                  panel.background = element_rect(fill = plotcolor))
-        
-        ggplotly(a)
-    })
-    
-    output$ImportProportion <- renderPlotly({
-        plot_ly(data = import_proportion) %>%
-            filter(Year %in% input$FilterYear) %>%
-            group_by(Year) %>%
-            add_trace(x = "Consumption Goods", y = ~ConsumptionGoods, name = "Consumption Goods", 
-                      text = ~ConsumptionGoods, textposition = 'auto') %>%
-            add_trace(x = "Raw Material Support", y = ~RawMaterialSupport, name = "Raw Material Support",
-                      text = ~RawMaterialSupport, textposition = 'auto') %>%
-            add_trace(x = "Capital Goods", y = ~CapitalGoods, name = "Capital Goods",
-                      text = ~CapitalGoods, textposition = 'auto') %>%
-            layout(yaxis = list(title = "Amount (USD Million)", range = c(0, 200000)), barmode = NULL,
-                   plot_bgcolor = plotcolor, 
-                   paper_bgcolor = papercolor)
-    })
-    #---------------------------------------------------------------------------------------------------------------------------
-    
-    #-----------------------------------------------------------Dashboard 1-2---------------------------------------------------
-    output$LineExport <- renderPlotly({
-        inputOrder <- ifelse(input$order == "All", nrow(export_partners), input$order)
-        final_data <- sorted_export_partners[c(1:inputOrder), c(1:3)]
-        subset_data <- subset(export_partners, export_partners$Destination %in% final_data$Destination)
-        
-        plot_ly(source = "source") %>%
-            add_lines(data = subset_data, x = ~Year, y = ~Export, color = ~Destination, mode= 'lines')%>%
-            add_markers(x=~Year, y=~Export,color = ~Destination,
-                        hoverinfo = 'text',
-                        text = ~paste('<br> Country: ', Destination,
-                                      '<br> Year: ', Year,
-                                      '<br> Export Value: $ ', Export),
-                        showlegend = FALSE
-            )
-    })
-    
-    output$ExportPartnerMap <- renderPlotly({
-        mapExport <- filter(export_import_map, Year == input$FilterYearMap)
-        
-        map <- ggplot()+
-            geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
-            geom_point(data=mapExport, aes(x=Longitude, y=Latitude, size=ExportValue,
-                                           label=Countries, label2=Year, label3=ExportValue), color="red")
-        
-        ggplotly(map)
-    })
-    
-    output$ExportGoodsCategory <- renderD3tree2({
-        category <- filter(exportCategory, Year == input$FilterYearMap)
-        newTitle <- paste0("Category of Product exported in ", input$FilterYearMap)
-        treemap <- treemap(category,
-                           index = c("Type", "label"),
-                           vSize="Export",
-                           vColor="Type",
-                           palette=brewer.pal(n=8, "Set3"),
-                           title=newTitle,
-                           title.legend = "Amount (Million US$)"
-        )
-        d3tree2(treemap, rootname = "Export of product (Million US$)")
-    })
-    #---------------------------------------------------------------------------------------------------------------------------
-    
-    #-----------------------------------------------------------Dashboard 1-2b Import-----------------------------------------------------
-    output$LineImport <- renderPlotly({
-        inputOrder <- ifelse(input$orderImport == "All", nrow(import_partners), input$orderImport)
-        final_data <- sorted_import_partners[c(1:inputOrder), c(1:3)]
-        subset_data <- subset(import_partners, import_partners$Destination %in% final_data$Destination)
-        
-        plot_ly(source = "source") %>%
-            add_lines(data = subset_data, x = ~Year, y = ~Import, color = ~Destination, mode= 'lines')%>%
-            add_markers(x = ~Year, y = ~Import, color = ~Destination,
-                        hoverinfo = 'text',
-                        text = ~paste('<br> Country: ', Destination,
-                                      '<br> Year: ', Year,
-                                      '<br> Import Value: $ ', Import),
-                        showlegend = FALSE
-            )
-    })
-    
-    output$ImportPartnerMap <- renderPlotly({
-        mapImport <- filter(export_import_map, Year == input$FilterYearMapImport)
-        
-        map <- ggplot()+
-            geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
-            geom_point(data=mapImport, aes(x=Longitude, y=Latitude, size=ImportValue,
-                                           label=Countries, label2=Year, label3=ImportValue), color="green")
-        
-        ggplotly(map)
-    })
-    
-    output$ImportGoodsCategory <- renderD3tree2({
-        category <- filter(importCategory, Year == input$FilterYearMapImport)
-        newTitle <- paste0("Category of Product imported in ", input$FilterYearMapImport)
-        treemap <- treemap(category,
-                           index = c("Type", "label"),
-                           vSize="Import",
-                           vColor="Type",
-                           palette=brewer.pal(n=8, "Set3"),
-                           title=newTitle,
-                           title.legend = "Amount (Million US$)"
-        )
-        d3tree2(treemap, rootname = "Export of Import (Million US$)")
-    })
-    #---------------------------------------------------------------------------------------------------------------------------
-    
-    
-    #-----------------------------------------------------------Dashboard 3 (Trade Balance)-------------------------------------
+    #-------------------------------------------------------------HOME DASHBOARD GRAPH------------------------------------------
     output$timeseries <- renderPlotly({
         plot_ly(source = "source") %>%
             add_lines(data = ds, x= ~Year, y=~value,color=~variable,
@@ -469,22 +492,273 @@ server <- function(input, output) {
     })
     
     output$scatter <- renderPlotly({
-        plot_ly(data = finaldata)%>%
-            filter(Year %in% input$FilterYear3) %>%
-            group_by(Year) %>%
-            add_markers(x=~Exportpercentile, y=~Importpercentile,
-                        hoverinfo = 'text',
-                        text = ~paste('</br> Country: ', Countries,
-                                      '</br> Import Value: $', Import.Value,
-                                      '</br> Export Value: $', Export.Value), 
-                        marker = list(colorbar=list(title = "Trade Balance"), 
-                                      color=~Tradebalance,colorscale='YlOrRd', showscale = TRUE)) %>%
-            layout(
-                shapes=list(
-                    list(type='line', x0= 50, x1= 50, y0=0, y1=100, line=list(dash='dot', width=1)),
-                    list(type='line', x0= 0, x1=100, y0=50, y1=50, line=list(dash='dot', width=1)))
-            )
+        tempdata = mutate(export_import_by_country, Importpercentile = ntile(export_import_by_country$Import.Value,100))
+        finaldata = mutate(tempdata, Exportpercentile = ntile(tempdata$Export.Value,100))
+        finaldata$Tradebalance <- finaldata$Export.Value - finaldata$Import.Value
+        finaldata_Year <- filter(finaldata, finaldata$Year == input$FilterYearDash1)
         
+        p <-ggplot(finaldata_Year, aes(x=Exportpercentile, y=Importpercentile, color=Tradebalance,
+                                       text=paste('</br>Country: ', Countries,
+                                                  '</br>Export: ', Export.Value,
+                                                  '</br>Import: ', Import.Value,
+                                                  '</br>Trade Balance: ', Tradebalance))) + geom_point() +
+            geom_line(aes(x = 50, y = 50)) +
+            geom_text_repel(aes(x=Exportpercentile, y=Importpercentile, label=Countries)) +
+            scale_color_gradient(low="red", high="green") +
+            coord_cartesian(xlim =c(0, 100), ylim = c(0, 100)) +
+            geom_hline(yintercept=50, linetype="dashed", color = "grey")+
+            geom_vline(xintercept=50, linetype="dashed", color = "grey") +
+            theme(panel.background = element_blank())
+        p <- ggplotly(p, tooltip = c("text"))
+        
+    })
+    #---------------------------------------------------------------------------------------------------------------------------
+    
+    
+    #-----------------------------------------------------IMPORT DASHBOARD GRAPH------------------------------------------------
+    #IMPORT PROPORTION
+    output$ImportProportion <- renderPlotly({
+        plot_ly(data = import_proportion) %>%
+            filter(Year %in% input$FilterYearImport) %>%
+            group_by(Year) %>%
+            add_trace(x = "Consumption Goods", y = ~ConsumptionGoods, name = "Consumption Goods", 
+                      text = ~ConsumptionGoods, textposition = 'auto') %>%
+            add_trace(x = "Raw Material Support", y = ~RawMaterialSupport, name = "Raw Material Support",
+                      text = ~RawMaterialSupport, textposition = 'auto') %>%
+            add_trace(x = "Capital Goods", y = ~CapitalGoods, name = "Capital Goods",
+                      text = ~CapitalGoods, textposition = 'auto') %>%
+            layout(yaxis = list(title = "Amount (USD Million)", range = c(0, 200000)), 
+                   barmode = NULL, legend = list(orientation = 'h'))
+    })
+    
+    #LINE IMPORT
+    output$LineImport <- renderPlotly({
+        inputOrder <- ifelse(input$orderImport == "All", nrow(import_partners), input$orderImport)
+        final_data <- sorted_import_partners[c(1:inputOrder), c(1:3)]
+        subset_data <- subset(import_partners, import_partners$Destination %in% final_data$Destination)
+        
+        plot_ly(source = "source") %>%
+            add_lines(data = subset_data, x = ~Year, y = ~Import, color = ~Destination, mode= 'lines')%>%
+            add_markers(x = ~Year, y = ~Import, color = ~Destination,
+                        hoverinfo = 'text',
+                        text = ~paste('<br> Country: ', Destination,
+                                      '<br> Year: ', Year,
+                                      '<br> Import Value: $ ', Import),
+                        showlegend = FALSE
+            )%>%
+            layout(xaxis=list(zeroline = FALSE, showline=FALSE, showticklabels=FALSE, showgrid=FALSE))
+    })
+    
+    output$ImportPartnerMap <- renderPlotly({
+        mapImport <- filter(export_import_map, Year == input$FilterYearImport)
+        map <- ggplot()+
+            geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
+            geom_point(data=mapImport, aes(x=Longitude, y=Latitude, size=ImportValue,
+                                           label=Countries, label2=Year, label3=ImportValue), color="green")
+        
+        ggplotly(map)
+    })
+    #---------------------------------------------------------------------------------------------------------------------------
+    
+    
+    #----------------------------------------------------IMPORT PRODUCT DASHBOARD-----------------------------------------------
+    output$ImportGoodsCategory <- renderPlot({
+        category <- filter(importCategory, Year == input$FilterYearImportProduct)
+        newTitle <- paste0("Category of Product imported in ", input$FilterYearImportProduct)
+        treemap <- treemap(category,
+                           index = c("Type", "label"),
+                           vSize="Import",
+                           vColor="Import",
+                           type="value",
+                           palette=brewer.pal(n=8, "Spectral"),
+                           title=newTitle,
+                           title.legend = "Amount (Million US$)",
+                           align.labels = list(c("left", "top"), c("right", "bottom")), fontsize.labels=20
+        )
+        treemap
+        #d3tree(treemap)
+        #rootname = "Export of Import (Million US$)")
+    })
+    #---------------------------------------------------------------------------------------------------------------------------
+    
+    
+    #--------------------------------------------------------EXPORT DASHBOARD---------------------------------------------------
+    output$ExportProportion <- renderPlotly({
+        filtered_export_proportion <- filter(export_proportion, Year == input$FilterYearExport)
+        YearValue <- paste("Export at", filtered_export_proportion$Year)
+        a <- ggplot(data = filtered_export_proportion, label="Year") +
+            geom_mosaic(aes(x = product(Subcategory, Category), fill=Subcategory, weight = Import), divider = ddecker(), 
+                        na.rm=TRUE, offset = 0.002) +
+            #scale_fill_manual(values = c("#d8b365", "#f5f5f5", "#5ab4ac", "#d8b365", "#f5f5f5", "#5ab4ac", "#5ab4ac"))+
+            scale_y_continuous(labels=scales::percent)+
+            labs(x = YearValue, title='Proportion of Exported Goods')
+        ggplotly(a)
+    })
+    
+    output$LineExport <- renderPlotly({
+        inputOrder <- ifelse(input$orderExport == "All", nrow(export_partners), input$orderExport)
+        final_data <- sorted_export_partners[c(1:inputOrder), c(1:3)]
+        subset_data <- subset(export_partners, export_partners$Destination %in% final_data$Destination)
+        
+        plot_ly(source = "source") %>%
+            add_lines(data = subset_data, x = ~Year, y = ~Export, color = ~Destination, mode= 'lines')%>%
+            add_markers(x=~Year, y=~Export,color = ~Destination,
+                        hoverinfo = 'text',
+                        text = ~paste('<br> Country: ', Destination,
+                                      '<br> Year: ', Year,
+                                      '<br> Export Value: $ ', Export),
+                        showlegend = FALSE
+            )
+    })
+    
+    output$ExportPartnerMap <- renderPlotly({
+        mapExport <- filter(export_import_map, Year == input$FilterYearExport)
+        map <- ggplot()+
+            geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
+            geom_point(data=mapExport, aes(x=Longitude, y=Latitude, size=ExportValue,
+                                           label=Countries, label2=Year, label3=ExportValue), color="red")
+        
+        ggplotly(map)
+    })
+    #---------------------------------------------------------------------------------------------------------------------------
+    
+    
+    #----------------------------------------------------EXPORT PRODUCT DASHBOARD-----------------------------------------------
+    output$ExportGoodsCategory <- renderPlot({
+        category <- filter(exportCategory, Year == input$FilterYearExportProduct)
+        newTitle <- paste0("Category of Product exported in ", input$FilterYearExportProduct)
+        treemap <- treemap(category,
+                           index = c("Type", "label"),
+                           vSize="Export",
+                           vColor="Export",
+                           type="value",
+                           palette=brewer.pal(n=8, "Spectral"),
+                           title=newTitle,
+                           title.legend = "Amount (Million US$)",
+                           align.labels = list(c("left", "top"), c("right", "bottom")), fontsize.labels=20
+        )
+        treemap
+    })
+    #---------------------------------------------------------------------------------------------------------------------------
+    
+    
+    #---------------------------------------------SLOPE GRAPH GRAPH------------------------------------------------------------
+    output$slopegraph <- renderPlotly({
+        # retrive the export for the Year1 filter
+        Year_1_filter <- round(country_lists[, names(country_lists) == input$Year1])
+        # attach the country name to the export value
+        first_label <- paste(country_lists$Destination, Year_1_filter, sep=", ")
+        
+        # retrieve the export for the Year2 filter
+        Year_2_filter <- round(country_lists[, names(country_lists) == input$Year2])
+        #attach the country name to the export value 
+        second_label <- paste(country_lists$Destination, Year_2_filter, sep=", ")
+        
+        # if second year export - first year export is less than 0, it will be in color red, otherwise it will be green
+        country_lists$class <- ifelse(Year_2_filter - Year_1_filter < 0, "red", "green")
+        
+        slope_graph <- ggplot(country_lists) + geom_segment(aes(x=1, xend=2, y=Year_1_filter, yend=Year_2_filter, col=class), size=.75, show.legend=F) + 
+            geom_vline(xintercept=1, linetype="dashed", size=.1) + 
+            geom_vline(xintercept=2, linetype="dashed", size=.1) +
+            scale_color_manual(labels = c("Up", "Down"), 
+                               values = c("green"="#00ba38", "red"="#f8766d")) +  # color of lines
+            labs(x="", y="Export Value")   # Axis labels
+        #xlim(.5, 2.5) + ylim(0,(2.5*(Year_2_filter - Year_1_filter)))  # X and Y axis limits
+        
+        slope_graph <- slope_graph + geom_text(label=first_label, y=Year_1_filter, x=rep(1, NROW(country_lists)), hjust=1.1, size=3.5)
+        slope_graph <- slope_graph + geom_text(label=second_label, y=Year_2_filter, x=rep(2, NROW(country_lists)), hjust=-0.1, size=3.5)
+        #slope_graph <- slope_graph + geom_text(label="From", x=1, y=1.1*(1.1*(Year_2_filter - Year_1_filter)), hjust=1.2, size=5)  # title
+        #slope_graph <- slope_graph + geom_text(label="To", x=2, y=1.1*(1.1*(Year_2_filter - Year_1_filter)), hjust=-0.1, size=5)  # title
+        slope_graph <- slope_graph + theme(panel.background = element_blank())
+        
+        slope_graph
+        
+    })
+    #---------------------------------------------------------------------------------------------------------------------------
+    
+    #----------------------------------------------PRODUCT CATEGORY EXPORT GRAPH------------------------------------------------------------------------
+    output$ExportProductPerCategory <- renderPlotly({
+        final_filtered <- filter(exportCategoryTotal, Type == input$FilterExportCategoryType)
+        plot_ly(source = "source") %>%
+            add_lines(data = final_filtered, x = ~Year, y = ~Export, color = ~Type, mode= 'lines',
+                      showlegend = FALSE)%>%
+            add_markers(x=~Year, y=~Export,color = ~Type,
+                        hoverinfo = 'text',
+                        text = ~paste('<br> Product: ', Type,
+                                      '<br> Year: ', Year,
+                                      '<br> Export Value: $ ', Export),
+                        showlegend = FALSE
+            ) %>%
+            add_text(x=~Year, y=~Export, text=~label)
+    })
+    
+    output$ExportProductCategoryMap <- renderPlotly({
+        filtered <- filter(exportCategory, Type == input$FilterExportCategoryType)
+        final_filtered <- filter(filtered, Year == input$FilterExportCategoryYear)
+        
+        map <- ggplot()+
+            geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
+            geom_point(data=final_filtered, aes(x=Longitude, y=Latitude, size=Export,
+                                                label=Destination, label2=Year, label3=Export), color="green")
+        
+        ggplotly(map)
+    })
+    #---------------------------------------------------------------------------------------------------------------------------
+    
+    
+    
+    #----------------------------------------------PRODUCT CATEGORY IMPORT GRAPH------------------------------------------------------------------------
+    output$ImportProductPerCategory <- renderPlotly({
+        final_filtered <- filter(importCategoryTotal, Type == input$FilterImportCategoryType)
+        plot_ly(source = "source") %>%
+            add_lines(data = final_filtered, x = ~Year, y = ~Import, color = ~Type, mode= 'lines',
+                      showlegend = FALSE)%>%
+            add_markers(x=~Year, y=~Import,color = ~Type,
+                        hoverinfo = 'text',
+                        text = ~paste('<br> Product: ', Type,
+                                      '<br> Year: ', Year,
+                                      '<br> Export Value: $ ', Import),
+                        showlegend = FALSE
+            ) %>%
+            add_text(x=~Year, y=~Import, text=~label, repel=TRUE)
+    })
+    
+    output$ImportProductCategoryMap <- renderPlotly({
+        filtered <- filter(importCategory, Type == input$FilterImportCategoryType)
+        final_filtered <- filter(filtered, Year == input$FilterImportCategoryYear)
+        
+        map <- ggplot()+
+            geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
+            geom_point(data=final_filtered, aes(x=Longitude, y=Latitude, size=Import,
+                                                label=Origin, label2=Year, label3=Import), color="red")
+        
+        ggplotly(map)
+    })
+    #---------------------------------------------------------------------------------------------------------------------------
+    
+    #------------------------------------------------PORT DISTRIBUTION OF INDONESIA--------------------------------------------
+    output$PortMapIndo <- renderPlotly({
+        initial_data <- importPorts
+        color <- "red"
+        if(input$ImportOrExport == "Import"){
+            initial_data = importPorts
+            color <- "red"
+        } else{
+            initial_data = exportPorts
+            color <- "green"
+        }
+        
+        final_filtered <- filter(initial_data, Year == input$FilterPortYear)
+        title <- paste(input$ImportOrExport, " Ports of Indonesia")
+        mapWorld <- ggplot()+
+            geom_polygon(data=global_map, aes(x=long, y=lat, group=group))
+        
+        indoMap <- mapWorld + xlim(94, 142) + ylim(-11, 7.5) +
+            geom_point(data=final_filtered, aes(x=Longitude, y=Latitude, size=Values,
+                                                label=MajorPorts, label2=Year, label3=Values), color=color) +
+            labs(title = title)
+        
+        ggplotly(indoMap)
     })
     #---------------------------------------------------------------------------------------------------------------------------
 }
