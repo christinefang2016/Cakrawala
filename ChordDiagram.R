@@ -36,9 +36,9 @@ ui <- fluidPage(
                 value = 2002,
                 sep = "",
                 animate = animationOptions(loop = TRUE)),
-            mainPanel(
-                column(12,chorddiagOutput("chord"),height = "1000px")
-            )
+            
+                column(12, chorddiagOutput("chord", height = "600px"))
+            
         
         
         #column(6, plotOutput("sankey"), height = "1000px")
@@ -53,8 +53,8 @@ server <- function(input, output) {
        
         #plotOutput(data = sorted_import_partners)%>%
         testdata = filter(data, Year==input$FilterYear)
-        destinationImport = cbind(testdata$Destination,testdata$`Import Value`, row.names=NULL)
-        destinationExport = cbind(testdata$Destination,testdata$`Export Value`,row.names=NULL)
+        destinationImport = cbind(testdata$Countries,testdata$`Import Value`, row.names=NULL)
+        destinationExport = cbind(testdata$Countries,testdata$`Export Value`,row.names=NULL)
         destinationImport = as.data.frame(destinationImport)
         destinationExport = as.data.frame(destinationExport)
         #View(destination)
@@ -89,9 +89,9 @@ server <- function(input, output) {
             chordedgeColor = groupColor, 
             width = 10000,
             height = 10000, 
-            groupnameFontsize = 8, 
+            groupnameFontsize = 10, 
             groupnamePadding = 1, 
-            margin = 50,
+            margin = 100,
             categorynamePadding = 10
             )
         
