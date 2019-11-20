@@ -21,7 +21,7 @@ devtools::install_github("mattflor/chorddiag")
 #library(dplyr)
 library(chorddiag)
 #library(data.table)
-data <- read_csv("Data/ExportImportByCountries.csv", locale = locale(encoding = "Latin1"))
+data <- read_csv("data/ExportImportByCountries.csv", locale = locale(encoding = "Latin1"))
 #sorted_import_partners <- data[order(-data$`Import Value`),]
 # Define UI for application that draws a histogram
 ui <- fluidPage(

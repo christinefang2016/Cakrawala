@@ -242,6 +242,7 @@ ui <- dashboardPage(
     ),
     dashboardSidebar(
         sidebarMenu(
+            menuItem("MAINPAGE", tabName = "MAINPAGE", icon = icon("dashboard")),
             menuItem("HOME", tabName = "HOME", icon = icon("dashboard")),
             menuItem("IMPORT", tabName = "IMPORT", icon = icon("dashboard")),
             menuItem("IMPORT PRODUCT", tabName = "IMPORTPRODUCT", icon = icon("dashboard")),
@@ -254,8 +255,39 @@ ui <- dashboardPage(
         )
     ),
     dashboardBody(
-        #-------------------------------------------------------HOME DASHBOARD-------------------------------------------------
         tabItems(
+            #------------------------------------------------MAINPAGE DASHBOARD-------------------------------------------------
+            tabItem(tabName = "MAINPAGE",
+                    fluidRow(
+                        column(12, tags$img(src = 'Cakrawala.png', height = 150, width = 1000)),
+                        column(12, h1("Problem and Motivation")),
+                        column(12, h3("Being one of the 25th largest export economies, Indonesia enjoys a positive trade balance of 
+                                US$35 in 2017. Despite that, Indonesia's export and import have been declining at an annualized rate of 
+                                -2.4% and -3.9% respectively. Based on the current trends, our group aims to visualize the export and 
+                                import patterns, and demand and supply of goods in Indonesia through a dashboard.")),
+                        column(12, h3("Our motivation is to provide a user-friendly and comprehensive application that visualizes 
+                                      the impact of export and import on Indonesia's trade balance. Additionally, the application 
+                                      will address the lack of visualization application, as Kementrian Perdagangan Republik 
+                                      Indonesia (Ministry of Trade) displays the information in the table form report and separated 
+                                      infographics uploaded on a different segment of the website.")),
+                        column(12, h1("Our Objective")),
+                        column(12, tags$div(
+                            tags$ul(
+                                tags$li(h3("Gain the overall insight on the yearly pattern of Indonesia's export and import, and 
+                                           the top trading partners from the year 2002 until now.")),
+                                tags$li(h3("Identify the demand for the product and gain insight into the customers' preference 
+                                           based on the goods being exported and imported to Indonesia.")),
+                                tags$li(h3("Gain overall insights into Indonesia's economic performance based on the Trade 
+                                           Balance trends."))
+                            )
+                        ))
+                    )
+            ),
+            #-------------------------------------------------------------------------------------------------------------------
+            
+            
+            
+            #-------------------------------------------------------HOME DASHBOARD------------------------------------------
             tabItem(tabName = "HOME",
                     fluidRow(
                         infoBox(title_total_export, value_total_export, icon = icon("arrow-up")),
