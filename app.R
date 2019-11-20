@@ -186,6 +186,13 @@ finaldata = mutate(tempdata, Exportpercentile = ntile(tempdata$Export.Value,100)
 finaldata$Tradebalance <- finaldata$Export.Value - finaldata$Import.Value
 #-----------------------------------------------------------------------------------------------------------
 
+#------------------------------------------------PERCENTILE-------------------------------------------------
+percentile_data <- export_import_by_country
+percentile_data$Importpercentile <- ntile(percentile_data$Import.Value,100)
+percentile_data$Exportpercentile <- ntile(percentile_data$Export.Value,100)
+percentile_data$Tradebalance <- percentile_data$Export.Value - percentile_data$Import.Value
+#-------------------------------------------------------------------------------------------------------------
+
 #-------------------------------------------------Map of Indonesia's Port-----------------------------------
 exportPorts <- read_csv("data/Export_by_Port_LongLat.csv")
 importPorts <- read_csv("data/Import_by_Ports_LongLat.csv")
@@ -193,10 +200,15 @@ importPorts <- read_csv("data/Import_by_Ports_LongLat.csv")
 
 #-------------------------------------------------Slope graph----------------------------------------------
 #upload data
-country_lists <- read.csv("data/SlopeGraphExportPartners.csv")
+country_lists_export <- read.csv("data/SlopeGraphExportPartners.csv")
 #rename column year from X2000 to 2000 and so on
-colnames(country_lists) <- c("Destination", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007", 
-                             "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018")
+colnames(country_lists_export) <- c("Destination", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007", 
+                                    "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018")
+
+country_lists_import <- read.csv("data/SlopeGraphImportPartners.csv")
+colnames(country_lists_import) <- c("Destination", "2000", "2001", "2002", "2003", "2004", "2005", "2006", "2007", 
+                                    "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018")
+
 yearList <- c("2000" = "2000", "2001" = "2001", "2002" = "2002", "2003" = "2003", "2004" = "2004", "2005" = "2005",
               "2006" = "2006", "2007" = "2007", "2008" = "2008", "2009" = "2009", "2010" = "2010","2011" = "2011",
               "2012" = "2012", "2013" = "2013", "2014" = "2014", "2015" = "2015", "2016" = "2016", "2017" = "2017",
@@ -255,7 +267,7 @@ ui <- dashboardPage(
                                plotlyOutput(outputId = "timeseries", height = "600px")),
                         
                         column(12, h1("Magic Quadrant for Indonesia Trading Partner")),
-                        column(10, plotlyOutput("scatter", height = "600px")),
+                        column(10, plotlyOutput("percentileGraph", height = "600px")),
                         
                         column(2, 
                                sliderInput(
@@ -381,6 +393,11 @@ ui <- dashboardPage(
             tabItem(tabName = "SLOPEGRAPH",
                     fluidRow(
                         sidebarPanel(
+                            selectInput(inputId = "ImportExportSlope",
+                                        label = "Import / Export:",
+                                        choices = c("Import" = "Import",
+                                                    "Export" = "Export"),
+                                        selected = "Import"),
                             selectInput(inputId = "Year1",
                                         label = "From:",
                                         choices = yearList,
@@ -390,7 +407,7 @@ ui <- dashboardPage(
                                         choices = yearList,
                                         selected = "2018")
                         ),
-                        column(8, plotlyOutput("slopegraph", height="900px"))
+                        column(8, plotlyOutput("slopegraph", height="700px")),
                     )
             ),
             #-------------------------------------------------------------------------------------------------------------------
@@ -491,25 +508,23 @@ server <- function(input, output) {
             )
     })
     
-    output$scatter <- renderPlotly({
-        tempdata = mutate(export_import_by_country, Importpercentile = ntile(export_import_by_country$Import.Value,100))
-        finaldata = mutate(tempdata, Exportpercentile = ntile(tempdata$Export.Value,100))
-        finaldata$Tradebalance <- finaldata$Export.Value - finaldata$Import.Value
-        finaldata_Year <- filter(finaldata, finaldata$Year == input$FilterYearDash1)
+    output$percentileGraph <- renderPlotly({
+        finaldata_Year <- filter(percentile_data, percentile_data$Year == input$FilterYearDash1)
         
-        p <-ggplot(finaldata_Year, aes(x=Exportpercentile, y=Importpercentile, color=Tradebalance,
-                                       text=paste('</br>Country: ', Countries,
-                                                  '</br>Export: ', Export.Value,
-                                                  '</br>Import: ', Import.Value,
-                                                  '</br>Trade Balance: ', Tradebalance))) + geom_point() +
-            geom_line(aes(x = 50, y = 50)) +
-            geom_text_repel(aes(x=Exportpercentile, y=Importpercentile, label=Countries)) +
+        p <- ggplot(finaldata_Year, aes(x=Exportpercentile, y=Importpercentile, color=Tradebalance))+
+            #text=paste('</br>Country: ', Countries,
+            #         '</br>Export: ', Export.Value,
+            #         '</br>Import: ', Import.Value))) + 
+            geom_text(aes(label=Countries), nudge_y = 2)+
+            geom_point() + 
+            #geom_line(aes(x = 50, y = 50)) +
+            #geom_text_repel(aes(x=Exportpercentile, y=Importpercentile, label=Countries)) +
             scale_color_gradient(low="red", high="green") +
             coord_cartesian(xlim =c(0, 100), ylim = c(0, 100)) +
             geom_hline(yintercept=50, linetype="dashed", color = "grey")+
             geom_vline(xintercept=50, linetype="dashed", color = "grey") +
             theme(panel.background = element_blank())
-        p <- ggplotly(p, tooltip = c("text"))
+        ggplotly(p)
         
     })
     #---------------------------------------------------------------------------------------------------------------------------
@@ -552,9 +567,10 @@ server <- function(input, output) {
     output$ImportPartnerMap <- renderPlotly({
         mapImport <- filter(export_import_map, Year == input$FilterYearImport)
         map <- ggplot()+
-            geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
+            geom_polygon(data=global_map, aes(x=long, y=lat, group=group), alpha=0.5) +  
             geom_point(data=mapImport, aes(x=Longitude, y=Latitude, size=ImportValue,
-                                           label=Countries, label2=Year, label3=ImportValue), color="green")
+                                           label=Countries, label2=Year), color="#F12424") +
+            theme(panel.background = element_blank())
         
         ggplotly(map)
     })
@@ -586,13 +602,17 @@ server <- function(input, output) {
     output$ExportProportion <- renderPlotly({
         filtered_export_proportion <- filter(export_proportion, Year == input$FilterYearExport)
         YearValue <- paste("Export at", filtered_export_proportion$Year)
-        a <- ggplot(data = filtered_export_proportion, label="Year") +
+        a <- ggplot(data = filtered_export_proportion, label="Year", 
+                    text = ~paste('<br> Category: ', Category, " (", Subcategory, ")",
+                                  '<br> Year: ', Year,
+                                  '<br> Export Value: $ ', Import)) +
             geom_mosaic(aes(x = product(Subcategory, Category), fill=Subcategory, weight = Import), divider = ddecker(), 
                         na.rm=TRUE, offset = 0.002) +
             #scale_fill_manual(values = c("#d8b365", "#f5f5f5", "#5ab4ac", "#d8b365", "#f5f5f5", "#5ab4ac", "#5ab4ac"))+
             scale_y_continuous(labels=scales::percent)+
-            labs(x = YearValue, title='Proportion of Exported Goods')
-        ggplotly(a)
+            labs(x = YearValue, title='Proportion of Exported Goods') +
+            theme(panel.background = element_blank())
+        ggplotly(a, tooltip=c("text"))
     })
     
     output$LineExport <- renderPlotly({
@@ -608,15 +628,17 @@ server <- function(input, output) {
                                       '<br> Year: ', Year,
                                       '<br> Export Value: $ ', Export),
                         showlegend = FALSE
-            )
+            ) %>%
+            layout(xaxis=list(zeroline = FALSE, showline=FALSE, showticklabels=FALSE, showgrid=FALSE))
     })
     
     output$ExportPartnerMap <- renderPlotly({
         mapExport <- filter(export_import_map, Year == input$FilterYearExport)
         map <- ggplot()+
-            geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
+            geom_polygon(data=global_map, aes(x=long, y=lat, group=group), alpha=0.5) +  
             geom_point(data=mapExport, aes(x=Longitude, y=Latitude, size=ExportValue,
-                                           label=Countries, label2=Year, label3=ExportValue), color="red")
+                                           label=Countries, label2=Year), color="#33AF13") +
+            theme(panel.background = element_blank())
         
         ggplotly(map)
     })
@@ -644,6 +666,14 @@ server <- function(input, output) {
     
     #---------------------------------------------SLOPE GRAPH GRAPH------------------------------------------------------------
     output$slopegraph <- renderPlotly({
+        country_lists <- country_lists_import
+        
+        if(input$ImportExportSlope == "Import"){
+            country_lists = country_lists_import
+        } else{
+            country_lists = country_lists_export
+        }
+        
         # retrive the export for the Year1 filter
         Year_1_filter <- round(country_lists[, names(country_lists) == input$Year1])
         # attach the country name to the export value
@@ -689,7 +719,8 @@ server <- function(input, output) {
                                       '<br> Export Value: $ ', Export),
                         showlegend = FALSE
             ) %>%
-            add_text(x=~Year, y=~Export, text=~label)
+            add_text(x=~Year, y=~Export, text=~label) %>%
+            layout(xaxis=list(zeroline = FALSE, showline=FALSE, showticklabels=FALSE, showgrid=FALSE))
     })
     
     output$ExportProductCategoryMap <- renderPlotly({
@@ -697,9 +728,10 @@ server <- function(input, output) {
         final_filtered <- filter(filtered, Year == input$FilterExportCategoryYear)
         
         map <- ggplot()+
-            geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
+            geom_polygon(data=global_map, aes(x=long, y=lat, group=group), alpha=0.5) +  
             geom_point(data=final_filtered, aes(x=Longitude, y=Latitude, size=Export,
-                                                label=Destination, label2=Year, label3=Export), color="green")
+                                                label=Destination, label2=Year, label3=Export), color="#33AF13") +
+            theme(panel.background = element_blank())
         
         ggplotly(map)
     })
@@ -720,7 +752,8 @@ server <- function(input, output) {
                                       '<br> Export Value: $ ', Import),
                         showlegend = FALSE
             ) %>%
-            add_text(x=~Year, y=~Import, text=~label, repel=TRUE)
+            add_text(x=~Year, y=~Import, text=~label, repel=TRUE) %>%
+            layout(xaxis=list(zeroline = FALSE, showline=FALSE, showticklabels=FALSE, showgrid=FALSE))
     })
     
     output$ImportProductCategoryMap <- renderPlotly({
@@ -728,9 +761,10 @@ server <- function(input, output) {
         final_filtered <- filter(filtered, Year == input$FilterImportCategoryYear)
         
         map <- ggplot()+
-            geom_polygon(data=global_map, aes(x=long, y=lat, group=group)) +  
+            geom_polygon(data=global_map, aes(x=long, y=lat, group=group), alpha=0.5) +  
             geom_point(data=final_filtered, aes(x=Longitude, y=Latitude, size=Import,
-                                                label=Origin, label2=Year, label3=Import), color="red")
+                                                label=Origin, label2=Year, label3=Import), color="#F12424") +
+            theme(panel.background = element_blank())
         
         ggplotly(map)
     })
@@ -742,21 +776,22 @@ server <- function(input, output) {
         color <- "red"
         if(input$ImportOrExport == "Import"){
             initial_data = importPorts
-            color <- "red"
+            color <- "#F12424"
         } else{
             initial_data = exportPorts
-            color <- "green"
+            color <- "#33AF13"
         }
         
         final_filtered <- filter(initial_data, Year == input$FilterPortYear)
         title <- paste(input$ImportOrExport, " Ports of Indonesia")
         mapWorld <- ggplot()+
-            geom_polygon(data=global_map, aes(x=long, y=lat, group=group))
+            geom_polygon(data=global_map, aes(x=long, y=lat, group=group), alpha=0.5)
         
         indoMap <- mapWorld + xlim(94, 142) + ylim(-11, 7.5) +
             geom_point(data=final_filtered, aes(x=Longitude, y=Latitude, size=Values,
-                                                label=MajorPorts, label2=Year, label3=Values), color=color) +
-            labs(title = title)
+                                                label=MajorPorts, label2=Year), color=color) +
+            labs(title = title) +
+            theme(panel.background = element_blank())
         
         ggplotly(indoMap)
     })
