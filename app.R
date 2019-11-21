@@ -26,7 +26,7 @@ library(scales)
 library(d3Tree)
 library(sp)
 library(chorddiag)
-
+library(data.table)
 #----------------------------------------Package installation--------------------------------------------
 #packages = c('rsconnect', 'tinytex','plotly', 'RColorBrewer','classInt','ggthemes',
 #             'tidyverse', 'pivottabler', 'dplyr','shiny','shinythemes', 'lubridate',
@@ -751,11 +751,16 @@ server <- function(input, output) {
             geom_vline(xintercept=2, linetype="dashed", size=.1) +
             scale_color_manual(labels = c("Up", "Down"), 
                                values = c("green"="#00ba38", "red"="#f8766d")) +  # color of lines
-            labs(x="", y="Export Value")   # Axis labels
+            if(input$ImportExportSlope == "Import"){
+                labs(x="",y="Import Value")
+            }else{
+                labs(x="",y="Export Value")
+            }
+              # Axis labels
         #xlim(.5, 2.5) + ylim(0,(2.5*(Year_2_filter - Year_1_filter)))  # X and Y axis limits
         
-        slope_graph <- slope_graph + geom_text(label=first_label, y=Year_1_filter, x=rep(1, NROW(country_lists)), hjust=1.1, size=3.5)
-        slope_graph <- slope_graph + geom_text(label=second_label, y=Year_2_filter, x=rep(2, NROW(country_lists)), hjust=-0.1, size=3.5)
+        slope_graph <- slope_graph + geom_text_repel(label=first_label, y=Year_1_filter, x=rep(1, NROW(country_lists)), hjust=1.1, size=3.5)
+        slope_graph <- slope_graph + geom_text_repel(label=second_label, y=Year_2_filter, x=rep(2, NROW(country_lists)), hjust=-0.1, size=3.5)
         #slope_graph <- slope_graph + geom_text(label="From", x=1, y=1.1*(1.1*(Year_2_filter - Year_1_filter)), hjust=1.2, size=5)  # title
         #slope_graph <- slope_graph + geom_text(label="To", x=2, y=1.1*(1.1*(Year_2_filter - Year_1_filter)), hjust=-0.1, size=5)  # title
         slope_graph <- slope_graph + theme(panel.background = element_blank())
