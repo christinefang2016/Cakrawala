@@ -249,17 +249,15 @@ ui <- dashboardPage(
     ),
     dashboardSidebar(
         sidebarMenu(
-            menuItem("MAINPAGE", tabName = "MAINPAGE", icon = icon("dashboard")),
+            menuItem("ABOUT US", tabName = "MAINPAGE", icon = icon("dashboard")),
             menuItem("HOME", tabName = "HOME", icon = icon("dashboard")),
             menuItem("IMPORT", tabName = "IMPORT", icon = icon("dashboard")),
             menuItem("IMPORT PRODUCT", tabName = "IMPORTPRODUCT", icon = icon("dashboard")),
             menuItem("EXPORT", tabName = "EXPORT", icon = icon("dashboard")),
             menuItem("EXPORT PRODUCT", tabName = "EXPORTPRODUCT", icon = icon("dashboard")),
-            menuItem("SLOPE GRAPH", tabName = "SLOPEGRAPH", icon = icon("dashboard")),
-            menuItem("CHORD DIAGRAM", tabName = "CHORDDIAGRAM", icon = icon("dashboard")),
-            menuItem("PRODUCT CATEGORY (IMPORT)", tabName = "IMPORTCATEGORY", icon = icon("dashboard")),
-            menuItem("PRODUCT CATEGORY (EXPORT)", tabName = "EXPORTCATEGORY", icon = icon("dashboard")),
-            menuItem("PORTS OF INDO", tabName = "PORTINDO", icon = icon("dashboard"))
+            menuItem("TREND OF TRADE", tabName = "SLOPEGRAPH", icon = icon("dashboard")),
+            menuItem("TRADE FLOWS", tabName = "CHORDDIAGRAM", icon = icon("dashboard")),
+            menuItem("PORTS OF INDONESIA", tabName = "PORTINDO", icon = icon("dashboard"))
         )
     ),
     dashboardBody(
@@ -267,13 +265,13 @@ ui <- dashboardPage(
             #------------------------------------------------MAINPAGE DASHBOARD-------------------------------------------------
             tabItem(tabName = "MAINPAGE",
                     fluidRow(
-                        column(12, tags$img(src = 'Cakrawala.png', height = 150, width = 1000)),
+                        #column(12, tags$img(src = 'Cakrawala.png', height = 150, width = 1000)),
                         column(12, h1("Problem and Motivation")),
-                        column(12, h3("Being one of the 25th largest export economies, Indonesia enjoys a positive trade balance of 
+                        column(12, h4("Being one of the 25th largest export economies, Indonesia enjoys a positive trade balance of 
                                 US$35 in 2017. Despite that, Indonesia's export and import have been declining at an annualized rate of 
                                 -2.4% and -3.9% respectively. Based on the current trends, our group aims to visualize the export and 
                                 import patterns, and demand and supply of goods in Indonesia through a dashboard.")),
-                        column(12, h3("Our motivation is to provide a user-friendly and comprehensive application that visualizes 
+                        column(12, h4("Our motivation is to provide a user-friendly and comprehensive application that visualizes 
                                       the impact of export and import on Indonesia's trade balance. Additionally, the application 
                                       will address the lack of visualization application, as Kementrian Perdagangan Republik 
                                       Indonesia (Ministry of Trade) displays the information in the table form report and separated 
@@ -281,11 +279,11 @@ ui <- dashboardPage(
                         column(12, h1("Our Objective")),
                         column(12, tags$div(
                             tags$ul(
-                                tags$li(h3("Gain the overall insight on the yearly pattern of Indonesia's export and import, and 
+                                tags$li(h4("Gain the overall insight on the yearly pattern of Indonesia's export and import, and 
                                            the top trading partners from the year 2002 until now.")),
-                                tags$li(h3("Identify the demand for the product and gain insight into the customers' preference 
+                                tags$li(h4("Identify the demand for the product and gain insight into the customers' preference 
                                            based on the goods being exported and imported to Indonesia.")),
-                                tags$li(h3("Gain overall insights into Indonesia's economic performance based on the Trade 
+                                tags$li(h4("Gain overall insights into Indonesia's economic performance based on the Trade 
                                            Balance trends."))
                             )
                         ))
@@ -327,7 +325,7 @@ ui <- dashboardPage(
             tabItem(tabName = "IMPORT",
                     fluidRow(
                         column(5, 
-                               h1("Proportion of Indonesia Import Goods"),
+                               h1("Proportion of Indonesia Imports"),
                                plotlyOutput("ImportProportion", height = "500px")),
                         
                         column(5, 
@@ -362,7 +360,7 @@ ui <- dashboardPage(
             tabItem(tabName = "IMPORTPRODUCT",
                     fluidRow(
                         column(12, h1("Import Product Category")),
-                        column(10, plotOutput("ImportGoodsCategory", height="800px")),
+                        column(10, plotOutput("ImportGoodsCategory", height="600px")),
                         column(2, sliderInput(
                             inputId = "FilterYearImportProduct",
                             label = "Year",
@@ -370,7 +368,25 @@ ui <- dashboardPage(
                             max = max(export_import_map$Year),
                             value = max(export_import_map$Year),
                             sep = "",
-                            animate = animationOptions(loop = TRUE)))
+                            animate = animationOptions(loop = TRUE))),
+                        column(12, h1("Trend Import of Product Category")),
+                        column(10, plotlyOutput(outputId = "ImportProductPerCategory", height = "500px")),
+                        column(2, radioButtons(
+                            inputId = "FilterImportCategoryType",
+                            label = "Category:",
+                            choices = unique(importCategory$Type),
+                            selected = NULL
+                        )),
+                        
+                        column(12, h1("Import Partners of Specific Product Category")),
+                        column(10, plotlyOutput(outputId = "ImportProductCategoryMap", height = "500px")),
+                        column(2, sliderInput(
+                            inputId = "FilterImportCategoryYear",
+                            label = "Year",
+                            min = min(importCategory$Year),
+                            max = max(importCategory$Year),
+                            value = max(importCategory$Year),
+                            sep = "")),
                     )
             ),
             #-------------------------------------------------------------------------------------------------------------------
@@ -380,7 +396,7 @@ ui <- dashboardPage(
             tabItem(tabName = "EXPORT",
                     fluidRow(
                         column(5, 
-                               h1("Proportion of Indonesia Export Goods"),
+                               h1("Proportion of Indonesia Exports"),
                                plotlyOutput("ExportProportion", height = "500px")),
                         
                         column(5, 
@@ -415,7 +431,7 @@ ui <- dashboardPage(
             tabItem(tabName = "EXPORTPRODUCT",
                     fluidRow(
                         column(12, h1("Export Product Category")),
-                        column(10, plotOutput("ExportGoodsCategory", height="800px")),
+                        column(10, plotOutput("ExportGoodsCategory", height="600px")),
                         column(2, sliderInput(
                             inputId = "FilterYearExportProduct",
                             label = "Year",
@@ -423,7 +439,25 @@ ui <- dashboardPage(
                             max = max(export_import_map$Year),
                             value = max(export_import_map$Year),
                             sep = "",
-                            animate = animationOptions(loop = TRUE)))
+                            animate = animationOptions(loop = TRUE))),
+                        column(12, h1("Trend Import of Product Category")),
+                        column(10, plotlyOutput(outputId = "ExportProductPerCategory", height = "500px")),
+                        column(2, radioButtons(
+                            inputId = "FilterExportCategoryType",
+                            label = "Category:",
+                            choices = unique(exportCategory$Type),
+                            selected = NULL
+                        )),
+                        
+                        column(12, h1("Import Partners of Specific Product Category")),
+                        column(10, plotlyOutput(outputId = "ExportProductCategoryMap", height = "500px")),
+                        column(2, sliderInput(
+                            inputId = "FilterExportCategoryYear",
+                            label = "Year",
+                            min = min(exportCategory$Year),
+                            max = max(exportCategory$Year),
+                            value = max(exportCategory$Year),
+                            sep = ""))
                     )
             ),
             #-------------------------------------------------------------------------------------------------------------------
@@ -447,7 +481,7 @@ ui <- dashboardPage(
                                         choices = yearList,
                                         selected = "2018")
                         ),
-                        column(8, plotlyOutput("slopegraph", height="700px")),
+                        column(8, plotlyOutput("slopegraph", height="800px")),
                     )
             ),
             #-------------------------------------------------------------------------------------------------------------------
@@ -465,71 +499,20 @@ ui <- dashboardPage(
                             max = 2018,
                             value = 2002,
                             sep = "",
-                            animate = animationOptions(loop = TRUE)
+                            animate = animationOptions(loop = FALSE)
                         )),
                         
                     )
             ),
             #-------------------------------------------------------------------------------------------------------------------
             
-            
-            #------------------------------------------------IMPORT OF PRODUCT CATEGORY DASHBOARD--------------------------------
-            tabItem(tabName = "IMPORTCATEGORY",
-                    fluidRow(
-                        column(12, h1("Trend Import of Product Category")),
-                        column(10, plotlyOutput(outputId = "ImportProductPerCategory", height = "600px")),
-                        column(2, radioButtons(
-                            inputId = "FilterImportCategoryType",
-                            label = "Category:",
-                            choices = unique(importCategory$Type),
-                            selected = NULL
-                        )),
-                        
-                        column(12, h1("Import Partners of Specific Product Category")),
-                        column(10, plotlyOutput(outputId = "ImportProductCategoryMap", height = "600px")),
-                        column(2, sliderInput(
-                            inputId = "FilterImportCategoryYear",
-                            label = "Year",
-                            min = min(importCategory$Year),
-                            max = max(importCategory$Year),
-                            value = max(importCategory$Year),
-                            sep = "")),
-                    )
-            ),
-            #----------------------------------------------------------------------------------------------------------------------
-            
-            
-            #-----------------------------------------------EXPORT OF PRODUCT CATEGORY DASHBOARD-----------------------------------
-            tabItem(tabName = "EXPORTCATEGORY",
-                    fluidRow(
-                        column(12, h1("Trend Import of Product Category")),
-                        column(10, plotlyOutput(outputId = "ExportProductPerCategory", height = "600px")),
-                        column(2, radioButtons(
-                            inputId = "FilterExportCategoryType",
-                            label = "Category:",
-                            choices = unique(exportCategory$Type),
-                            selected = NULL
-                        )),
-                        
-                        column(12, h1("Import Partners of Specific Product Category")),
-                        column(10, plotlyOutput(outputId = "ExportProductCategoryMap", height = "600px")),
-                        column(2, sliderInput(
-                            inputId = "FilterExportCategoryYear",
-                            label = "Year",
-                            min = min(exportCategory$Year),
-                            max = max(exportCategory$Year),
-                            value = max(exportCategory$Year),
-                            sep = ""))
-                    )
-            ),
-            #---------------------------------------------------------------------------------------------------------------------
-            
+    
             
             #---------------------------------------------PORT DISTRIBUTION OF INDONESIA-----------------------------------------
             tabItem(tabName = "PORTINDO",
                     fluidRow(
                         column(12, h1("Port Distribution of Indonesia")),
-                        column(10, plotlyOutput(outputId = "PortMapIndo", height = "700px")),
+                        column(10, plotlyOutput(outputId = "PortMapIndo", height = "650px")),
                         column(2, selectInput(inputId = "ImportOrExport",
                                               label = "Import / Export:",
                                               choices = c("Import" = "Import",
@@ -760,12 +743,28 @@ server <- function(input, output) {
               # Axis labels
         #xlim(.5, 2.5) + ylim(0,(2.5*(Year_2_filter - Year_1_filter)))  # X and Y axis limits
         
-        slope_graph <- slope_graph + geom_text_repel(label=first_label, y=Year_1_filter, x=rep(1, NROW(country_lists)), hjust=1.1, size=3.5)
-        slope_graph <- slope_graph + geom_text_repel(label=second_label, y=Year_2_filter, x=rep(2, NROW(country_lists)), hjust=-0.1, size=3.5)
+        slope_graph <- slope_graph + geom_text(label=first_label, y=Year_1_filter, x=rep(1, NROW(country_lists)), hjust=1.1, size=3.5)
+        slope_graph <- slope_graph + geom_text(label=second_label, y=Year_2_filter, x=rep(2, NROW(country_lists)), hjust=-0.1, size=3.5)
         #slope_graph <- slope_graph + geom_text(label="From", x=1, y=1.1*(1.1*(Year_2_filter - Year_1_filter)), hjust=1.2, size=5)  # title
         #slope_graph <- slope_graph + geom_text(label="To", x=2, y=1.1*(1.1*(Year_2_filter - Year_1_filter)), hjust=-0.1, size=5)  # title
         slope_graph <- slope_graph + theme(panel.background = element_blank())
-        
+        #slope_graph <- slope_graph + geom_text_repel(data = country_lists[, names(country_lists) == input$Year1],
+        #                                              aes(label = first_label) , 
+        #                                              hjust = "left", 
+        #                                              fontface = "bold", 
+        #                                              size = 4, 
+        #                                              nudge_x = -.45, 
+        #                                              direction = "y") +
+        #     slope_graph + geom_text_repel(data = country_lists[, names(country_lists) == input$Year2],
+        #                                   aes(label = second_label) , 
+        #                                       hjust = "left", 
+        #                                       fontface = "bold", 
+        #                                       size = 4, 
+        #                                       nudge_x = -.45, 
+        #                                       direction = "y")
+            
+
+                
         slope_graph
         
     })
