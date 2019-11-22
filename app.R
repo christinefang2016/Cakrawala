@@ -28,16 +28,16 @@ library(data.table)
 
 
 #----------------------------------------Package installation--------------------------------------------
-#packages = c('rsconnect', 'tinytex','plotly', 'RColorBrewer','classInt','ggthemes',
-#             'tidyverse', 'pivottabler', 'dplyr','shiny','shinythemes', 'lubridate',
-#             'sf', 'tmap', 'shinyWidgets', 'leaflet', 'ggmosaic', 'htmltools', 'raster', 'rgdal', 'rgeos', 'remotes',
-#             'ggrepel', 'scales', 'd3Tree', 'data.table')
-#for(p in packages){
-#    if(!require(p, character.only = T)){
-#        install.packages(p)
-#    }
-#    library(p, character.only = T)
-#}
+packages = c('rsconnect', 'tinytex','plotly', 'RColorBrewer','classInt','ggthemes',
+             'tidyverse', 'pivottabler', 'dplyr','shiny','shinythemes', 'lubridate',
+             'sf', 'tmap', 'shinyWidgets', 'leaflet', 'ggmosaic', 'htmltools', 'raster', 'rgdal', 'rgeos', 'remotes',
+             'ggrepel', 'scales', 'd3Tree', 'data.table')
+for(p in packages){
+    if(!require(p, character.only = T)){
+        install.packages(p)
+    }
+    library(p, character.only = T)
+}
 #devtools::install_github("mattflor/chorddiag")
 #--------------------------------------------------------------------------------------------------------
 
@@ -317,8 +317,8 @@ ui <- dashboardPage(
                         infoBox("Total Trade Balance (2019)", value_tradebalance, icon = icon("money-bill-alt")),
                         
                         column(12, 
-                               h1("Indonesia Trade Balance"),
-                               plotlyOutput(outputId = "timeseries"))
+                               h2("Indonesia Trade Balance"),
+                               plotlyOutput(outputId = "timeseries", height="350px"))
                     )
             ),
             #-------------------------------------------------------------------------------------------------------------------
@@ -330,7 +330,7 @@ ui <- dashboardPage(
                         
                         column(12, h1("Magic Quadrant for Indonesia Trading Partner")),
                         
-                        column(10, plotOutput("percentileGraph", height = "500px")),
+                        column(10, plotOutput("percentileGraph", height = "400px")),
                         
                         column(2, 
                                sliderInput(
@@ -350,7 +350,7 @@ ui <- dashboardPage(
                     fluidRow(
                         column(10, 
                                h1("Import Goods by Category"),
-                               plotlyOutput("ImportProportion", height = "500px")),
+                               plotlyOutput("ImportProportion", height = "400px")),
                         
                         column(2,
                                sliderInput(
@@ -368,10 +368,8 @@ ui <- dashboardPage(
             #------------------------------------------------TOPIMPORTERS DASHBOARD---------------------------------------------------
             tabItem(tabName = "TOPIMPORTERS",
                     fluidRow(
-                        
-                        column(10, 
-                               h1("Top Importer of Indonesia"),
-                               plotlyOutput("LineImport", height = "500px")),
+                        column(12, h1("Top Importer of Indonesia")),
+                        column(10, plotlyOutput("LineImport", height = "400px")),
                         
                         column(2,
                                selectInput(inputId = "orderImport",
@@ -389,9 +387,8 @@ ui <- dashboardPage(
             #------------------------------------------------LOCATIONIMPORTERS DASHBOARD---------------------------------------------------
             tabItem(tabName = "LOCATIONIMPORTERS",
                     fluidRow(
-                        column(10, 
-                               h1("Location of Indonesia Importer"),
-                               plotlyOutput("ImportPartnerMap", height = "600px")),
+                        column(12, h1("Location of Indonesia Importer")),
+                        column(10, plotlyOutput("ImportPartnerMap", height = "400px")),
                         column(2,
                                sliderInput(
                                    inputId = "FilterYearImportLocMap",
@@ -410,7 +407,7 @@ ui <- dashboardPage(
             tabItem(tabName = "PRODUCTSUBCATEGORY",
                     fluidRow(
                         column(12, h1("Import by Product Subcategory")),
-                        column(10, plotOutput("ImportGoodsCategory", height="600px")),
+                        column(10, plotOutput("ImportGoodsCategory", height="400px")),
                         column(2, sliderInput(
                             inputId = "FilterYearImportProduct",
                             label = "Year",
@@ -426,8 +423,9 @@ ui <- dashboardPage(
             #---------------------------------------------PRODUCTSUBCATEGORYTREND DASHBOARD----------------------------------------------
             tabItem(tabName = "PRODUCTSUBCATEGORYTREND",
                     fluidRow(
-                        column(12, h1("Import Trend by Product Subcategory")),
-                        column(10, plotlyOutput(outputId = "ImportProductPerCategory", height = "500px")),
+                        column(10, 
+                               h1("Import Trend by Product Subcategory"),
+                               plotlyOutput(outputId = "ImportProductPerCategory", height = "400px")),
                         column(2, radioButtons(
                             inputId = "FilterImportCategoryType",
                             label = "Category:",
@@ -442,8 +440,9 @@ ui <- dashboardPage(
             #---------------------------------------------PRODUCTSUBCATEGORYIMPORTERS DASHBOARD----------------------------------------------
             tabItem(tabName = "PRODUCTSUBCATEGORYIMPORTERS",
                     fluidRow(
-                        column(12, h1("Location of Indonesia Importer by Product Subcategory")),
-                        column(10, plotlyOutput(outputId = "ImportProductCategoryMap", height = "500px")),
+                        column(10, 
+                               h1("Location of Indonesia Importer by Product Subcategory"),
+                               plotlyOutput(outputId = "ImportProductCategoryMap", height = "400px")),
                         column(2, 
                                sliderInput(
                                     inputId = "FilterImportCategoryYear",
@@ -467,7 +466,7 @@ ui <- dashboardPage(
                     fluidRow(
                         column(10, 
                                h1("Proportion of Indonesia Exports"),
-                               plotlyOutput("ExportProportion", height = "500px")),
+                               plotlyOutput("ExportProportion", height = "400px")),
                         column(2,
                                sliderInput(
                                    inputId = "FilterYearExport",
@@ -484,9 +483,8 @@ ui <- dashboardPage(
             #------------------------------------------------TOPEXPORTERS DASHBOARD---------------------------------------------------
             tabItem(tabName = "TOPEXPORTERS",
                     fluidRow(
-                        column(10, 
-                               h1("Top Exporter of Indonesia"),
-                               plotlyOutput("LineExport", height = "500px")),
+                        column(12, h1("Top Exporter of Indonesia")),
+                        column(10, plotlyOutput("LineExport", height = "400px")),
                         
                         column(2,
                                selectInput(inputId = "orderExport",
@@ -504,9 +502,8 @@ ui <- dashboardPage(
             #------------------------------------------------LOCATIONEXPORTERS DASHBOARD---------------------------------------------------
             tabItem(tabName = "LOCATIONEXPORTERS",
                     fluidRow(
-                        column(10, 
-                               h1("Location of Indonesia Exporter"),
-                               plotlyOutput("ExportPartnerMap", height = "600px")),
+                        column(12, h1("Location of Indonesia Exporter")),
+                        column(10, plotlyOutput("ExportPartnerMap", height = "400px")),
                         column(2,
                                sliderInput(
                                    inputId = "FilterYearExportMap",
@@ -526,7 +523,7 @@ ui <- dashboardPage(
             tabItem(tabName = "PRODUCTSUBCATEGORYEX",
                     fluidRow(
                         column(12, h1("Export by Product Subcategory")),
-                        column(10, plotOutput("ExportGoodsCategory", height="600px")),
+                        column(10, plotOutput("ExportGoodsCategory", height="400px")),
                         column(2, sliderInput(
                             inputId = "FilterYearExportProduct",
                             label = "Year",
@@ -542,8 +539,9 @@ ui <- dashboardPage(
             #---------------------------------------------PRODUCTSUBCATEGORYTRENDEX DASHBOARD----------------------------------------------
             tabItem(tabName = "PRODUCTSUBCATEGORYTRENDEX",
                     fluidRow(
-                        column(12, h1("Export Trend by Product Subcategory")),
-                        column(10, plotlyOutput(outputId = "ExportProductPerCategory", height = "500px")),
+                        column(10, 
+                               h1("Export Trend by Product Subcategory"),
+                               plotlyOutput(outputId = "ExportProductPerCategory", height = "400px")),
                         column(2, radioButtons(
                             inputId = "FilterExportCategoryType",
                             label = "Category:",
@@ -559,20 +557,20 @@ ui <- dashboardPage(
             tabItem(tabName = "PRODUCTSUBCATEGORYEXPORTERS",
                     fluidRow(
                         column(12, h1("Location of Indonesia Exporter by Product Subcategory")),
-                        column(10, plotlyOutput(outputId = "ExportProductCategoryMap", height = "500px")),
-                        column(2, radioButtons(
+                        column(10, plotlyOutput(outputId = "ExportProductCategoryMap", height = "400px")),
+                        column(2, sliderInput(
+                            inputId = "FilterExportCategoryYear",
+                            label = "Year",
+                            min = min(exportCategory$Year),
+                            max = max(exportCategory$Year),
+                            value = max(exportCategory$Year),
+                            sep = ""),
+                               radioButtons(
                             inputId = "FilterExportCategoryTypeMap",
                             label = "Category:",
                             choices = unique(exportCategory$Type),
                             selected = NULL
-                            ),
-                            sliderInput(
-                                inputId = "FilterExportCategoryYear",
-                                label = "Year",
-                                min = min(exportCategory$Year),
-                                max = max(exportCategory$Year),
-                                value = max(exportCategory$Year),
-                                sep = "")),
+                            )),
                         
                     )
             ),
@@ -598,7 +596,7 @@ ui <- dashboardPage(
                                         choices = yearList,
                                         selected = "2018")
                         ),
-                        column(8, plotlyOutput("slopegraph", height="800px")),
+                        column(8, plotlyOutput("slopegraph", height="400px")),
                     )
             ),
             #-------------------------------------------------------------------------------------------------------------------
@@ -608,7 +606,7 @@ ui <- dashboardPage(
             tabItem(tabName = "CHORDDIAGRAM",
                     fluidRow(
                         column(12, h1("Export and Import Partner of Indonesia")),
-                        column(10, chorddiagOutput("chord", height="500px")),
+                        column(10, chorddiagOutput("chord", height="400px")),
                         column(2, sliderInput(
                             inputId = "FilterYearChord",
                             label = "Year",
@@ -629,7 +627,7 @@ ui <- dashboardPage(
             tabItem(tabName = "PORTINDO",
                     fluidRow(
                         column(12, h1("Port Distribution of Indonesia")),
-                        column(10, plotlyOutput(outputId = "PortMapIndo")),
+                        column(10, plotlyOutput(outputId = "PortMapIndo", height="400px")),
                         column(2, selectInput(inputId = "ImportOrExport",
                                               label = "Import / Export:",
                                               choices = c("Import" = "Import",
@@ -905,10 +903,12 @@ server <- function(input, output) {
         Year_1_filter <- country_lists[,c("Destination", input$Year1)]
         Year_1_filter$Year <- input$Year1
         names(Year_1_filter)[names(Year_1_filter) == input$Year1] <- "Value"
+        Year_1_filter$log <- log10(Year_1_filter$Value)
         
         Year_2_filter <- country_lists[,c("Destination", input$Year2)]
         Year_2_filter$Year <- input$Year2
         names(Year_2_filter)[names(Year_2_filter) == input$Year2] <- "Value"
+        Year_2_filter$log <- log10(Year_2_filter$Value)
         
         mergeCol <- merge(Year_1_filter, Year_2_filter, by="Destination")
         mergeCol$status <- ifelse(mergeCol$Value.y - mergeCol$Value.x >0, "Increase", "Decrease")
@@ -916,13 +916,13 @@ server <- function(input, output) {
         total <- rbind(Year_1_filter, Year_2_filter)
         total$status <- plyr::mapvalues(total$Destination, from = mergeCol$Destination, to = mergeCol$status)
         
-        slope_graph <- ggplot(total, aes(x=Year, y=Value, group=Destination, color=status)) +
+        slope_graph <- ggplot(total, aes(x=Year, y=log, y1=Value, group=Destination, color=status)) +
             geom_line()+
-            scale_color_manual(values=c(Increase = "#00ba38", Decrease = "#f8766d")) +
-            scale_x_discrete(name ="Year", 
-                             limits=c(as.character(year1input), as.character(year2input))) +
+            scale_color_manual(values=c(Increase = "#00ba38", Decrease = "#f8766d"))+
+            scale_x_discrete()+
             scale_y_discrete(name = input$ImportExportSlope)+
-            theme(panel.background = element_blank())
+            theme(panel.background = element_blank(),
+                  axis.text.y=element_blank())
         
         ggplotly(slope_graph)
     })
