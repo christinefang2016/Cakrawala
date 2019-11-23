@@ -685,7 +685,7 @@ server <- function(input, output) {
             geom_vline(xintercept=50, linetype="dashed", color = "grey") +
             theme(panel.background = element_blank())
         p <- p + annotate("text", x=25,y=100,label="Low Export, High Import") + annotate("text", x=80,y=100,label="Top Partners")+
-            annotate("text", x=25,y=45,label="Untapped Market") + annotate("text", x=80,y=45,label="Top Export, Low Import")
+            annotate("text", x=25,y=45,label="Untapped Market") + annotate("text", x=80,y=45,label="High Export, Low Import")
         p
         
     })
