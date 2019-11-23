@@ -38,7 +38,7 @@ for(p in packages){
     }
     library(p, character.only = T)
 }
-#devtools::install_github("mattflor/chorddiag")
+devtools::install_github("mattflor/chorddiag")
 #--------------------------------------------------------------------------------------------------------
 
 #-----------------------------------------CODE TO STYLE THE FONT OF TREEMAP------------------------------
@@ -684,8 +684,8 @@ server <- function(input, output) {
             geom_hline(yintercept=50, linetype="dashed", color = "grey")+
             geom_vline(xintercept=50, linetype="dashed", color = "grey") +
             theme(panel.background = element_blank())
-        p <- p + annotate("text", x=25,y=100,label="High Importer") + annotate("text", x=80,y=100,label="Strong Partner")+
-            annotate("text", x=25,y=45,label="Low Importer") + annotate("text", x=80,y=45,label="High Exporter")
+        p <- p + annotate("text", x=25,y=100,label="Low Export, High Import") + annotate("text", x=80,y=100,label="Top Partners")+
+            annotate("text", x=25,y=45,label="Untapped Market") + annotate("text", x=80,y=45,label="Top Export, Low Import")
         p
         
     })
